@@ -1,44 +1,36 @@
-// backend/server.js
+const mongoose = require("mongoose");
+const dotenv = require("dotenv");
+const app = require("./app"); // Importamos la configuración de app.js
 
-const dotenv = require('dotenv');
-const mongoose = require('mongoose');
-const { app } = require('./app');
-
-// Cargar variables de entorno del archivo .env
 dotenv.config();
 
 const PORT = process.env.PORT || 5000;
+const mongoUri = process.env.MONGO_URI;
 
-// --- CONEXIÓN A MONGO DB ---
-async function connectToDatabase(uri) {
-  try {
-    await mongoose.connect(uri);
-    console.log('✅ Conectado a MongoDB Atlas');
-  } catch (err) {
-    console.error('❌ Error de conexión a MongoDB:', err);
-    throw err;
-  }
-}
-
-// --- INICIAR SERVIDOR (solo si se ejecuta directamente) ---
-if (require.main === module) {
-  const mongoUri = process.env.MONGO_URI;
-
+// Función para conectar a la DB (exportable para tests si fuera necesario)
+const connectToDatabase = async () => {
   if (!mongoUri) {
-    console.error('❌ MONGO_URI no está definido en las variables de entorno');
+    console.error("❌ ERROR: No se encuentra la variable MONGO_URI en .env");
     process.exit(1);
   }
 
-  connectToDatabase(mongoUri)
-    .then(() => {
-      app.listen(PORT, () => {
-        console.log(`📡 Servidor de API corriendo en http://localhost:${PORT}`);
-      });
-    })
-    .catch(() => {
-      // El error ya fue logueado en connectToDatabase
-      process.exit(1);
+  try {
+    await mongoose.connect(mongoUri);
+    console.log("✅ Conectado a MongoDB Atlas");
+  } catch (error) {
+    console.error("❌ Error conectando a DB:", error);
+    process.exit(1);
+  }
+};
+
+// Solo arrancamos el servidor si este archivo se ejecuta directamente
+// (Esto evita que los tests intenten abrir el puerto 5000 dos veces)
+if (require.main === module) {
+  connectToDatabase().then(() => {
+    app.listen(PORT, () => {
+      console.log(`📡 Servidor corriendo en http://localhost:${PORT}`);
     });
+  });
 }
 
-module.exports = { app, connectToDatabase };
+module.exports = { connectToDatabase };
