@@ -5,3 +5,6 @@ dist-ssr
 .DS_Store
 .env
 .env.*
+
+# utillaje de revisión de diseño (local, no es del proyecto)
+.impeccable
