@@ -11,6 +11,8 @@ export type Tx = {
   date: string;
   recurringId?: string;
   potId?: string;
+  createdById?: string;
+  createdByName?: string;
 };
 
 export type Recurring = {
@@ -59,4 +61,12 @@ export const KIND_SECTION: Record<Kind, Section> = {
   income: "variable",
   expense: "variable",
   saving: "ahorro",
+};
+
+export type Book = {
+  id: string;
+  name: string;
+  ownerId: string;
+  memberIds: string[];
+  memberNames: Record<string, string>;
 };

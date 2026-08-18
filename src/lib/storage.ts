@@ -1,3 +1,5 @@
+// Lectura del almacén viejo (solo navegador). Ya no se escribe aquí: existe
+// para poder subir a las cuentas lo que quedó guardado antes del login.
 import { classifySection } from "./classify";
 import { uid } from "./format";
 import type { Store } from "./types";
@@ -84,8 +86,4 @@ export function loadStore(): Store {
     /* empty store */
   }
   return empty();
-}
-
-export function saveStore(store: Store) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(store));
 }
