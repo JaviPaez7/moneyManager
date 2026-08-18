@@ -55,3 +55,8 @@ export function moneyDate(date: string) {
     month: "short",
   }).format(new Date(`${date}T12:00:00`));
 }
+
+/** Importe que resta. Sin el menos delante cuando no hay nada que restar. */
+export function formatOut(n: number) {
+  return n > 0 ? `−${formatEUR(n)}` : formatEUR(n);
+}

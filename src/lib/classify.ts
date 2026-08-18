@@ -8,6 +8,18 @@ function fold(value: string) {
     .replace(/\p{M}/gu, "");
 }
 
+/**
+ * Las palabras clave se buscan enteras, no como trozo suelto: "Netflix"
+ * contiene "etf" y acababa clasificado como ahorro, y "digital" caía en la
+ * operadora "digi".
+ */
+function has(hay: string, keyword: string) {
+  const clean = fold(keyword).trim();
+  if (!clean) return false;
+  const escaped = clean.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return new RegExp(`(^|[^a-z0-9])${escaped}([^a-z0-9]|$)`).test(hay);
+}
+
 const SUSCRIPCION = [
   "netflix",
   "spotify",
@@ -38,18 +50,16 @@ const SUSCRIPCION = [
   "nintendo",
   "dazn",
   "movistar plus",
-  "max ",
-  " hbo",
+  "max",
   "google one",
   "microsoft 365",
   "office 365",
   "gym",
   "gimnasio",
-  "suscrip",
+  "suscripcion",
+  "suscripciones",
   "premium",
 ];
-
-const AHORRO = ["ahorro", "hucha", "fondo de", "inversion", "inversión", "etf", "emergencia"];
 
 const FIJO = [
   "mensualidad",
@@ -97,8 +107,9 @@ const VARIABLE_HINTS: Record<(typeof VARIABLE_CATS)[number], string[]> = {
     "uber eats",
     "just eat",
     "restaurante",
-    "bar ",
+    "bar",
     "cafe",
+    "cafeteria",
     "café",
     "comida",
     "supermercado",
@@ -126,12 +137,15 @@ const VARIABLE_HINTS: Record<(typeof VARIABLE_CATS)[number], string[]> = {
   Otros: [],
 };
 
+/**
+ * En qué sección cae un gasto. Solo devuelve las tres del formulario: el
+ * ahorro tiene su propia pestaña y no se adivina desde aquí.
+ */
 export function classifySection(note: string, category = ""): Section {
   const hay = ` ${fold(`${note} ${category}`)} `;
-  if (AHORRO.some((k) => hay.includes(fold(k)))) return "ahorro";
-  if (SUSCRIPCION.some((k) => hay.includes(fold(k)))) return "suscripcion";
-  if (FIJO.some((k) => hay.includes(fold(k)))) return "fijo";
-  if (/\b(movil|movil|telefono|coche)\b/.test(hay) && /mensual|tarifa|letra|cuota/.test(hay)) {
+  if (SUSCRIPCION.some((k) => has(hay, k))) return "suscripcion";
+  if (FIJO.some((k) => has(hay, k))) return "fijo";
+  if (/\b(movil|telefono|coche)\b/.test(hay) && /mensual|tarifa|letra|cuota/.test(hay)) {
     return "fijo";
   }
   return "variable";
@@ -141,7 +155,7 @@ export function classifyVariableCategory(note: string): (typeof VARIABLE_CATS)[n
   const hay = ` ${fold(note)} `;
   for (const cat of VARIABLE_CATS) {
     if (cat === "Otros") continue;
-    if (VARIABLE_HINTS[cat].some((k) => hay.includes(fold(k)))) return cat;
+    if (VARIABLE_HINTS[cat].some((k) => has(hay, k))) return cat;
   }
   return "Otros";
 }

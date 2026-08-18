@@ -19,6 +19,7 @@ import { classifySection, classifyVariableCategory, shouldRepeat } from "./lib/c
 import {
   currentMonth,
   formatEUR,
+  formatOut,
   moneyDate,
   monthLabel,
   parseAmount,
@@ -417,19 +418,19 @@ function Money({ user }: { user: AuthUser }) {
                 </li>
                 <li>
                   <span>Fijos</span>
-                  <em className="neg">−{formatEUR(fijoTotal)}</em>
+                  <em className="neg">{formatOut(fijoTotal)}</em>
                 </li>
                 <li>
                   <span>Suscripciones</span>
-                  <em className="neg">−{formatEUR(subTotal)}</em>
+                  <em className="neg">{formatOut(subTotal)}</em>
                 </li>
                 <li className="rule">
                   <span>Variables</span>
-                  <em className="neg">−{formatEUR(variableTotal)}</em>
+                  <em className="neg">{formatOut(variableTotal)}</em>
                 </li>
                 <li>
                   <span>Ahorro</span>
-                  <em>−{formatEUR(savingTotal)}</em>
+                  <em>{formatOut(savingTotal)}</em>
                 </li>
                 <li className="total">
                   <span>Queda</span>
@@ -811,7 +812,7 @@ function SectionList({
                 {shared && tx.createdByName && <span className="by">{tx.createdByName}</span>}
               </div>
               <div className="tx-right">
-                <em className="neg">−{formatEUR(tx.amount)}</em>
+                <em className="neg">{formatOut(tx.amount)}</em>
                 {tx.recurringId && activeRecurring.includes(tx.recurringId) && (
                   <button
                     type="button"
