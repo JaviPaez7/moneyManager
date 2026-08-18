@@ -60,3 +60,12 @@ export function moneyDate(date: string) {
 export function formatOut(n: number) {
   return n > 0 ? `−${formatEUR(n)}` : formatEUR(n);
 }
+
+/** "sept 2026": para tablas donde el mes largo se parte en dos líneas. */
+export function monthShort(month: string) {
+  const label = new Intl.DateTimeFormat("es-ES", {
+    month: "short",
+    year: "numeric",
+  }).format(new Date(`${month}-01T12:00:00`));
+  return label.replace(".", "");
+}

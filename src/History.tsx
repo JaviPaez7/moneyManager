@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { formatEUR, monthLabel } from "./lib/format";
+import { formatEUR, monthLabel, monthShort } from "./lib/format";
 import { monthlySummaries } from "./lib/summary";
 import type { Tx } from "./lib/types";
 
@@ -48,20 +48,29 @@ export default function History({
       <ul className="history-rows">
         {shown.map((row) => (
           <li key={row.month}>
-            <button type="button" className="history-month" onClick={() => onPickMonth(row.month)}>
-              {monthLabel(row.month)}
+            <button
+              type="button"
+              className="history-month"
+              title={monthLabel(row.month)}
+              onClick={() => onPickMonth(row.month)}
+            >
+              {monthShort(row.month)}
             </button>
             <div className="history-bars" aria-hidden>
-              <div
-                className="bar saved"
-                style={{ width: `${(row.saved / peak) * 100}%` }}
-                title={`Ahorrado ${formatEUR(row.saved)}`}
-              />
-              <div
-                className={`bar left ${row.leftover >= 0 ? "pos" : "neg"}`}
-                style={{ width: `${(Math.abs(row.leftover) / peak) * 100}%` }}
-                title={`Sobró ${formatEUR(row.leftover)}`}
-              />
+              {row.saved > 0 && (
+                <div
+                  className="bar saved"
+                  style={{ width: `${(row.saved / peak) * 100}%` }}
+                  title={`Ahorrado ${formatEUR(row.saved)}`}
+                />
+              )}
+              {row.leftover !== 0 && (
+                <div
+                  className={`bar left ${row.leftover > 0 ? "pos" : "neg"}`}
+                  style={{ width: `${(Math.abs(row.leftover) / peak) * 100}%` }}
+                  title={`Sobró ${formatEUR(row.leftover)}`}
+                />
+              )}
             </div>
             <div className="history-nums">
               <em className="pos" title="Ahorrado">
