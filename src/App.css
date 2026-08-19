@@ -989,20 +989,17 @@ footer p {
   gap: 0.7rem;
 }
 
-.pot-name {
-  border-radius: 0.4rem;
-  padding: 0 0.15rem;
-  margin: 0 -0.15rem;
+.pot-rename {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex: 1 1 100%;
 }
 
-.pot-name:hover {
-  background: #e7f1ec;
-}
-
-.pot-name:focus {
-  outline: 2px solid var(--focus);
-  outline-offset: 2px;
-  background: #fff;
+.pot-rename input {
+  flex: 1 1 6rem;
+  padding: 0.35rem 0.5rem;
+  border-radius: 0.5rem;
 }
 
 .pot-actions {

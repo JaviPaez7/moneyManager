@@ -81,6 +81,7 @@ function Money({ user }: { user: AuthUser }) {
   const [pwOpen, setPwOpen] = useState(false);
   const [editando, setEditando] = useState<string | null>(null);
   const [sacandoDe, setSacandoDe] = useState<string | null>(null);
+  const [renombrando, setRenombrando] = useState<string | null>(null);
 
   const { store, setStore, loading, error, setError } = useBookStore(bookId || null, month);
 
@@ -329,6 +330,7 @@ function Money({ user }: { user: AuthUser }) {
     await run(async () => {
       const pot = await updatePot(potId, { name });
       setStore((prev) => ({ ...prev, pots: prev.pots.map((p) => (p.id === pot.id ? pot : p)) }));
+      setRenombrando(null);
       return pot;
     });
   }
@@ -758,8 +760,7 @@ function Money({ user }: { user: AuthUser }) {
               <div>
                 <h2>Ahorro</h2>
                 <p>
-                  Botes que van creciendo mes a mes. Este mes: {formatEUR(savingTotal)}. Toca el
-                  nombre para cambiarlo.
+                  Botes que van creciendo mes a mes. Este mes: {formatEUR(savingTotal)}.
                 </p>
               </div>
             </div>
@@ -788,19 +789,29 @@ function Money({ user }: { user: AuthUser }) {
                   return (
                     <li key={pot.id}>
                       <div className="bar-meta">
-                        <strong
-                          key={pot.name}
-                          contentEditable
-                          suppressContentEditableWarning
-                          className="pot-name"
-                          onBlur={(e) => {
-                            const nuevo = e.currentTarget.textContent?.trim() || "";
-                            if (nuevo && nuevo !== pot.name) renombrarBote(pot.id, nuevo);
-                            else e.currentTarget.textContent = pot.name;
-                          }}
-                        >
-                          {pot.name}
-                        </strong>
+                        {renombrando === pot.id ? (
+                          <form
+                            className="pot-rename"
+                            onSubmit={(e) => {
+                              e.preventDefault();
+                              const valor = String(
+                                new FormData(e.currentTarget).get("nombre") || "",
+                              ).trim();
+                              if (valor && valor !== pot.name) renombrarBote(pot.id, valor);
+                              else setRenombrando(null);
+                            }}
+                          >
+                            <input name="nombre" defaultValue={pot.name} maxLength={60} autoFocus required />
+                            <button type="submit" className="text-btn" disabled={busy}>
+                              Guardar
+                            </button>
+                            <button type="button" className="text-btn" onClick={() => setRenombrando(null)}>
+                              Dejarlo
+                            </button>
+                          </form>
+                        ) : (
+                          <strong>{pot.name}</strong>
+                        )}
                         <span>
                           {formatEUR(saved)}
                           {pot.target > 0 ? ` / ${formatEUR(pot.target)}` : ""}
@@ -852,6 +863,13 @@ function Money({ user }: { user: AuthUser }) {
                         </form>
                       ) : (
                         <div className="pot-actions">
+                          <button
+                            type="button"
+                            className="text-btn"
+                            onClick={() => setRenombrando(pot.id)}
+                          >
+                            Renombrar
+                          </button>
                           <button
                             type="button"
                             className="text-btn"
