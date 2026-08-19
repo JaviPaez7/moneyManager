@@ -63,8 +63,29 @@ function sum(rows: Tx[]) {
 
 export default function App() {
   const [user, setUser] = useState<AuthUser | null>(currentUser);
+  const [comprobando, setComprobando] = useState(() => pb.authStore.isValid);
 
   useEffect(() => pb.authStore.onChange(() => setUser(currentUser())), []);
+
+  // La sesión guardada en el navegador puede no valer ya (contraseña cambiada,
+  // cuenta borrada). PocketBase no responde 401 en ese caso: atiende la
+  // petición como si no hubiera nadie, así que la app se quedaba dentro,
+  // enseñando ceros y un error del que no se sale. Se comprueba al arrancar.
+  useEffect(() => {
+    if (!pb.authStore.isValid) return;
+    pb.collection("users")
+      .authRefresh()
+      .catch(() => pb.authStore.clear())
+      .finally(() => setComprobando(false));
+  }, []);
+
+  if (comprobando) {
+    return (
+      <div className="gate">
+        <p className="loading">Abriendo…</p>
+      </div>
+    );
+  }
 
   if (!user) return <Login onIn={() => setUser(currentUser())} />;
   return <Money user={user} />;
