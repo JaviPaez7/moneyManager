@@ -14,15 +14,19 @@ personal, con varios es compartida y los dos ven y apuntan lo mismo.
 | API y auth | PocketBase en `/opt/money-api` (VPS), volumen `money-api_pb_data` |
 | Panel | https://api-money.javistudio.dev/_/ |
 | Esquema | `infra/pb-schema.mjs` (idempotente) |
-| Alta de cuentas | `infra/pb-user.mjs` o el panel |
+| Alta de cuentas | Desde la propia app; `infra/pb-user.mjs` para hacerlo a dedo |
 
-El registro es cerrado: no hay pantalla de "crear cuenta".
+El registro es abierto: cualquiera puede crearse una cuenta desde la pantalla
+de entrada. Los correos no se muestran entre usuarios (`emailVisibility` en
+falso), para que nadie pueda cosechar direcciones registrándose. Cada cuenta
+arranca con su libro personal y no ve nada de los demás hasta que alguien la
+mete en un libro compartido.
 
 ```bash
 # actualizar el esquema tras tocar infra/pb-schema.mjs
 PB_ADMIN_EMAIL=... PB_ADMIN_PASSWORD=... node infra/pb-schema.mjs
 
-# dar de alta a alguien
+# dar de alta a alguien a dedo (o cambiarle la contraseña)
 PB_ADMIN_EMAIL=... PB_ADMIN_PASSWORD=... node infra/pb-user.mjs correo@x.com "contraseña" "Nombre"
 ```
 

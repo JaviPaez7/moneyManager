@@ -1,7 +1,7 @@
 /**
- * Alta de cuentas en Money. El registro es cerrado: no hay pantalla de
- * "crear cuenta", las cuentas se dan de alta aquí o desde el panel de
- * PocketBase (https://api-money.javistudio.dev/_/).
+ * Alta de cuentas en Money a dedo. Normalmente no hace falta: cualquiera puede
+ * registrarse desde la propia app. Esto sirve para crear una cuenta a alguien
+ * o para cambiarle la contraseña desde fuera.
  *
  *   PB_ADMIN_EMAIL=... PB_ADMIN_PASSWORD=... \
  *   node infra/pb-user.mjs pablo@ejemplo.com "contraseña" "Pablo"
@@ -57,7 +57,7 @@ const payload = {
   password,
   passwordConfirm: password,
   name: name || email.split("@")[0],
-  emailVisibility: true,
+  emailVisibility: false,
   verified: true,
 };
 

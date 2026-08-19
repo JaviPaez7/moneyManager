@@ -107,20 +107,22 @@ const collections = await api(`/api/collections`);
 const usersId = collections.items.find((c) => c.name === "users")?.id;
 if (!usersId) throw new Error("No existe la colección de usuarios");
 
-// Registro cerrado: las cuentas las crea el superusuario desde el panel.
-// Cada usuario puede ver y editar su propia ficha, y ver el nombre de los
-// demás para saber quién apuntó cada gasto en un libro compartido.
+// Registro abierto: cualquiera puede crearse una cuenta desde la propia app.
+// Quien ha entrado ve el nombre de los demás (hace falta para saber quién
+// apuntó cada gasto y para elegir con quién compartir un libro), pero los
+// correos quedan ocultos: con el registro abierto, listarlos permitiría a
+// cualquier desconocido cosechar las direcciones de todo el mundo.
 await api(`/api/collections/${usersId}`, {
   method: "PATCH",
   body: JSON.stringify({
-    createRule: null,
+    createRule: "",
     listRule: '@request.auth.id != ""',
     viewRule: '@request.auth.id != ""',
     updateRule: "id = @request.auth.id",
-    deleteRule: null,
+    deleteRule: "id = @request.auth.id",
   }),
 });
-console.log("~ actualizada users (registro cerrado)");
+console.log("~ actualizada users (registro abierto, correos ocultos)");
 
 const isMember = "book.members.id ?= @request.auth.id";
 

@@ -443,10 +443,22 @@ select {
   font-size: 0.74rem;
   font-weight: 700;
   color: var(--muted);
+  border: 0;
+  background: transparent;
+  cursor: pointer;
 }
 
 .text-btn:hover {
   color: var(--coral);
+  text-decoration: underline;
+}
+
+/* En el pie de la entrada acompaña al texto, así que va a su tamaño. */
+.gate-foot .text-btn {
+  padding: 0;
+  font-size: inherit;
+  color: var(--teal-deep);
+  text-decoration: underline;
 }
 
 .tx-right button:hover {
