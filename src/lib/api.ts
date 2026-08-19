@@ -26,6 +26,7 @@ function toTx(record: RecordModel): Tx {
     potId: (record.pot as string) || undefined,
     createdById: (record.createdBy as string) || undefined,
     createdByName: author ? (author.name as string) || (author.email as string) : undefined,
+    out: Boolean(record.out),
   };
 }
 
@@ -186,6 +187,7 @@ export async function createTx(bookId: string, tx: NewTx): Promise<Tx> {
       monthKey: monthOf(tx.date),
       recurring: tx.recurringId || "",
       pot: tx.potId || "",
+      out: tx.out || false,
       createdBy: pb.authStore.record!.id,
     },
     { expand: "createdBy" },
@@ -205,6 +207,7 @@ export async function updateTx(txId: string, patch: Partial<NewTx>): Promise<Tx>
     body.monthKey = monthOf(patch.date);
   }
   if (patch.potId !== undefined) body.pot = patch.potId || "";
+  if (patch.out !== undefined) body.out = patch.out;
   const record = await pb.collection("txs").update(txId, body, { expand: "createdBy" });
   return toTx(record);
 }
@@ -257,6 +260,10 @@ export async function updatePot(potId: string, patch: { name?: string; target?: 
 
 export async function deletePot(potId: string): Promise<void> {
   await pb.collection("pots").delete(potId);
+}
+
+export async function deleteBook(bookId: string): Promise<void> {
+  await pb.collection("books").delete(bookId);
 }
 
 /**

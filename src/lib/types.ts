@@ -13,6 +13,8 @@ export type Tx = {
   potId?: string;
   createdById?: string;
   createdByName?: string;
+  /** Solo en el ahorro: es una retirada del bote, no un ingreso a él. */
+  out?: boolean;
 };
 
 export type Recurring = {

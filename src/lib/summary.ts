@@ -40,7 +40,7 @@ export function monthlySummaries(txs: Tx[]): MonthSummary[] {
 
     for (const tx of rows) {
       if (tx.kind === "income") income += tx.amount;
-      else if (tx.kind === "saving") saved += tx.amount;
+      else if (tx.kind === "saving") saved += tx.out ? -tx.amount : tx.amount;
       else if (tx.section === "fijo") fixed += tx.amount;
       else if (tx.section === "suscripcion") subs += tx.amount;
       else variable += tx.amount;
@@ -66,7 +66,7 @@ export function potTotals(txs: Tx[]): Map<string, number> {
   const map = new Map<string, number>();
   for (const tx of txs) {
     if (tx.kind !== "saving" || !tx.potId) continue;
-    map.set(tx.potId, (map.get(tx.potId) || 0) + tx.amount);
+    map.set(tx.potId, (map.get(tx.potId) || 0) + (tx.out ? -tx.amount : tx.amount));
   }
   return map;
 }

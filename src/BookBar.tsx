@@ -17,6 +17,7 @@ export default function BookBar({
   onCreate,
   onJoin,
   onBookChange,
+  onDelete,
   onError,
 }: {
   books: Book[];
@@ -26,6 +27,7 @@ export default function BookBar({
   onCreate: (name: string) => Promise<void>;
   onJoin: (code: string) => Promise<boolean>;
   onBookChange: (book: Book) => void;
+  onDelete: () => Promise<void>;
   onError: (message: string) => void;
 }) {
   const [panel, setPanel] = useState<Panel>("none");
@@ -230,9 +232,24 @@ export default function BookBar({
             </ul>
           )}
 
-          <button type="button" className="ghost small" onClick={() => setPanel("none")}>
-            Listo
-          </button>
+          <div className="share-foot">
+            <button type="button" className="ghost small" onClick={() => setPanel("none")}>
+              Listo
+            </button>
+            <button
+              type="button"
+              className="text-btn danger"
+              disabled={busy}
+              onClick={() => {
+                const aviso = `Se borra «${book.name}» con todo lo apuntado dentro${
+                  others.length > 0 ? ", también para los demás" : ""
+                }. Esto no se puede deshacer. ¿Sigo?`;
+                if (confirm(aviso)) onDelete();
+              }}
+            >
+              Borrar este libro
+            </button>
+          </div>
         </div>
       )}
     </div>

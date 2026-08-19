@@ -68,3 +68,21 @@ export function IconClose(props: IconProps) {
     </Svg>
   );
 }
+
+export function IconPencil(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M4 20h4l10-10-4-4L4 16v4Z" />
+      <path d="m14.5 5.5 4 4" />
+    </Svg>
+  );
+}
+
+export function IconArrowOut(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M12 19V5" />
+      <path d="m5 12 7-7 7 7" />
+    </Svg>
+  );
+}

@@ -238,6 +238,10 @@ await upsert({
     // Mes al que pertenece el movimiento ("YYYY-MM"): filtra el mes sin LIKE y
     // sostiene el índice único de abajo.
     { name: "monthKey", type: "text", required: true, min: 7, max: 7, pattern: "^\\d{4}-\\d{2}$" },
+    // Solo para el ahorro: marca una retirada del bote. Los importes siguen
+    // siendo siempre positivos; esto les da el signo, como hace `kind` con el
+    // resto.
+    { name: "out", type: "bool" },
     rel("recurring", recurrings.id, { cascadeDelete: false }),
     rel("pot", pots.id, { cascadeDelete: false }),
     rel("createdBy", usersId),

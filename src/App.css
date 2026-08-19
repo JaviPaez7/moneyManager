@@ -970,3 +970,71 @@ footer p {
   background: #fbfdfc;
   font-size: 0.92rem;
 }
+
+/* ---- Editar y botes ---- */
+
+.tx-list li.editing {
+  display: block;
+  padding: 0.9rem 0;
+}
+
+.edit-tx {
+  display: grid;
+  gap: 0.7rem;
+}
+
+.edit-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+}
+
+.pot-name {
+  border-radius: 0.4rem;
+  padding: 0 0.15rem;
+  margin: 0 -0.15rem;
+}
+
+.pot-name:hover {
+  background: #e7f1ec;
+}
+
+.pot-name:focus {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+  background: #fff;
+}
+
+.pot-actions {
+  display: flex;
+  gap: 0.4rem;
+  margin-top: 0.5rem;
+}
+
+.pot-actions .text-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.pot-actions .text-btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+  text-decoration: none;
+}
+
+.pot-out {
+  display: grid;
+  gap: 0.6rem;
+  margin-top: 0.6rem;
+}
+
+.share-foot {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+}
+
+.text-btn.danger {
+  color: var(--coral);
+}

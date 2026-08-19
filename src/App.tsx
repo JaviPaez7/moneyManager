@@ -2,19 +2,24 @@ import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react
 import "./App.css";
 import BookBar from "./BookBar";
 import History from "./History";
+import EditTx from "./EditTx";
 import Login from "./Login";
 import Password from "./Password";
-import { IconChevron, IconClose, IconPlus, IconRepeat, IconTrash } from "./icons";
+import { IconArrowOut, IconChevron, IconClose, IconPencil, IconPlus, IconRepeat, IconTrash } from "./icons";
 import {
   createBook,
   createPot,
   createRecurring,
   createTx,
+  deleteBook,
+  deletePot,
   deleteTx,
   friendlyError,
   joinBook,
   listBooks,
+  updatePot,
   updateRecurring,
+  updateTx,
 } from "./lib/api";
 import { classifySection, classifyVariableCategory, shouldRepeat } from "./lib/classify";
 import {
@@ -74,6 +79,8 @@ function Money({ user }: { user: AuthUser }) {
   const [busy, setBusy] = useState(false);
   const [legacy, setLegacy] = useState(pendingLocalStore);
   const [pwOpen, setPwOpen] = useState(false);
+  const [editando, setEditando] = useState<string | null>(null);
+  const [sacandoDe, setSacandoDe] = useState<string | null>(null);
 
   const { store, setStore, loading, error, setError } = useBookStore(bookId || null, month);
 
@@ -145,7 +152,7 @@ function Money({ user }: { user: AuthUser }) {
   const fijoTotal = sum(fijos);
   const subTotal = sum(subs);
   const variableTotal = sum(variables);
-  const savingTotal = sum(savings);
+  const savingTotal = savings.reduce((s, t) => s + (t.out ? -t.amount : t.amount), 0);
   const afterFixed = income - fijoTotal - subTotal;
   const leftover = afterFixed - variableTotal - savingTotal;
   const spent = fijoTotal + subTotal + variableTotal;
@@ -265,6 +272,93 @@ function Money({ user }: { user: AuthUser }) {
     });
   }
 
+  async function guardarEdicion(tx: Tx, cambios: Partial<Tx>, tambienLosProximos: boolean) {
+    await run(async () => {
+      const actualizado = await updateTx(tx.id, {
+        note: cambios.note,
+        amount: cambios.amount,
+        date: cambios.date,
+        section: cambios.section,
+        category: cambios.category,
+        potId: cambios.potId,
+      });
+      setStore((prev) => ({
+        ...prev,
+        txs: prev.txs.map((row) => (row.id === actualizado.id ? actualizado : row)),
+      }));
+
+      // Al subir el alquiler no se cambia solo este mes: la regla que lo repite
+      // tiene que enterarse, o el mes que viene vuelve el importe viejo.
+      const rule = store.recurrings.find((r) => r.id === tx.recurringId);
+      if (rule && tambienLosProximos) {
+        const nueva = await updateRecurring(rule.id, {
+          amount: actualizado.amount,
+          name: actualizado.note,
+          section: actualizado.section,
+        });
+        setStore((prev) => ({
+          ...prev,
+          recurrings: prev.recurrings.map((r) => (r.id === nueva.id ? nueva : r)),
+        }));
+      }
+      setEditando(null);
+      return actualizado;
+    });
+  }
+
+  async function sacarDelBote(potId: string, importe: number, nota: string) {
+    if (!bookId) return;
+    await run(async () => {
+      const tx = await createTx(bookId, {
+        kind: "saving",
+        amount: importe,
+        section: "ahorro",
+        category: nota,
+        note: nota,
+        date: form.date.startsWith(month) ? form.date : `${month}-01`,
+        potId,
+        out: true,
+      });
+      setStore((prev) => ({ ...prev, txs: [tx, ...prev.txs] }));
+      setSacandoDe(null);
+      return tx;
+    });
+  }
+
+  async function renombrarBote(potId: string, name: string) {
+    await run(async () => {
+      const pot = await updatePot(potId, { name });
+      setStore((prev) => ({ ...prev, pots: prev.pots.map((p) => (p.id === pot.id ? pot : p)) }));
+      return pot;
+    });
+  }
+
+  async function borrarBote(potId: string) {
+    await run(async () => {
+      await deletePot(potId);
+      setStore((prev) => ({
+        ...prev,
+        pots: prev.pots.filter((p) => p.id !== potId),
+        // Los movimientos se quedan; solo pierden el bote al que apuntaban.
+        txs: prev.txs.map((t) => (t.potId === potId ? { ...t, potId: undefined } : t)),
+      }));
+      return true;
+    });
+  }
+
+  async function borrarLibro() {
+    if (!book) return;
+    await run(async () => {
+      await deleteBook(book.id);
+      let otros = books.filter((b) => b.id !== book.id);
+      // Sin ningún libro no hay dónde apuntar, así que se repone el personal.
+      if (otros.length === 0) otros = [await createBook("Mis cuentas")];
+      setBooks(otros);
+      setBookId(otros[0].id);
+      return true;
+    });
+  }
+
   async function haltRecurring(ruleId: string) {
     await run(async () => {
       const updated = await updateRecurring(ruleId, { active: false });
@@ -370,6 +464,7 @@ function Money({ user }: { user: AuthUser }) {
         onBookChange={(updated) =>
           setBooks((prev) => prev.map((b) => (b.id === updated.id ? updated : b)))
         }
+        onDelete={borrarLibro}
         onError={setError}
       />
 
@@ -662,7 +757,10 @@ function Money({ user }: { user: AuthUser }) {
             <div className="pots-head">
               <div>
                 <h2>Ahorro</h2>
-                <p>Botes que van creciendo mes a mes. Este mes: {formatEUR(savingTotal)}.</p>
+                <p>
+                  Botes que van creciendo mes a mes. Este mes: {formatEUR(savingTotal)}. Toca el
+                  nombre para cambiarlo.
+                </p>
               </div>
             </div>
             {store.pots.length === 0 ? (
@@ -690,7 +788,19 @@ function Money({ user }: { user: AuthUser }) {
                   return (
                     <li key={pot.id}>
                       <div className="bar-meta">
-                        <strong>{pot.name}</strong>
+                        <strong
+                          key={pot.name}
+                          contentEditable
+                          suppressContentEditableWarning
+                          className="pot-name"
+                          onBlur={(e) => {
+                            const nuevo = e.currentTarget.textContent?.trim() || "";
+                            if (nuevo && nuevo !== pot.name) renombrarBote(pot.id, nuevo);
+                            else e.currentTarget.textContent = pot.name;
+                          }}
+                        >
+                          {pot.name}
+                        </strong>
                         <span>
                           {formatEUR(saved)}
                           {pot.target > 0 ? ` / ${formatEUR(pot.target)}` : ""}
@@ -699,6 +809,74 @@ function Money({ user }: { user: AuthUser }) {
                       {pot.target > 0 && (
                         <div className="bar-track" aria-hidden>
                           <div className="bar-fill" style={{ width: `${ratio * 100}%` }} />
+                        </div>
+                      )}
+
+                      {sacandoDe === pot.id ? (
+                        <form
+                          className="pot-out"
+                          onSubmit={(e) => {
+                            e.preventDefault();
+                            const datos = new FormData(e.currentTarget);
+                            const importe = parseAmount(String(datos.get("importe") || ""));
+                            if (importe == null) return;
+                            if (importe > saved) {
+                              setError(`En «${pot.name}» solo hay ${formatEUR(saved)}.`);
+                              return;
+                            }
+                            sacarDelBote(
+                              pot.id,
+                              importe,
+                              String(datos.get("nota") || "").trim() || `De ${pot.name}`,
+                            );
+                          }}
+                        >
+                          <div className="pair">
+                            <label>
+                              Cuánto sacas
+                              <input name="importe" inputMode="decimal" placeholder="0,00" autoFocus required />
+                            </label>
+                            <label>
+                              Para qué
+                              <input name="nota" placeholder="Opcional" maxLength={80} />
+                            </label>
+                          </div>
+                          <div className="edit-actions">
+                            <button type="submit" className="ghost small" disabled={busy}>
+                              Sacar
+                            </button>
+                            <button type="button" className="text-btn" onClick={() => setSacandoDe(null)}>
+                              Dejarlo
+                            </button>
+                          </div>
+                        </form>
+                      ) : (
+                        <div className="pot-actions">
+                          <button
+                            type="button"
+                            className="text-btn"
+                            onClick={() => {
+                              setSacandoDe(pot.id);
+                              setError(null);
+                            }}
+                            disabled={saved <= 0}
+                            title={saved <= 0 ? "Este bote está vacío" : "Sacar dinero del bote"}
+                          >
+                            <IconArrowOut size={13} /> Sacar
+                          </button>
+                          <button
+                            type="button"
+                            className="text-btn"
+                            onClick={() => {
+                              const aviso =
+                                saved > 0
+                                  ? `«${pot.name}» tiene ${formatEUR(saved)} apartados. Si lo borras, esos movimientos se quedan pero sin bote. ¿Sigo?`
+                                  : `¿Borro el bote «${pot.name}»?`;
+                              if (confirm(aviso)) borrarBote(pot.id);
+                            }}
+                          >
+                            Borrar
+                          </button>
                         </div>
                       )}
                     </li>
@@ -733,44 +911,69 @@ function Money({ user }: { user: AuthUser }) {
               </p>
             ) : (
               <ul className="tx-list">
-                {monthTxs.map((tx) => (
-                  <li key={tx.id}>
-                    <div>
-                      <strong>{tx.note || tx.category}</strong>
-                      <span>
-                        {moneyDate(tx.date)}
-                        {tx.kind === "income" ? " · Ingreso" : ` · ${SECTION_LABEL[tx.section]}`}
-                        {tx.kind === "expense" && tx.section === "variable" && tx.category
-                          ? ` · ${tx.category}`
-                          : ""}
-                        {shared && tx.createdByName ? ` · ${tx.createdByName}` : ""}
-                      </span>
-                    </div>
-                    <div className="tx-right">
-                      {tx.recurringId && (
-                        <span className="badge">
-                          <IconRepeat size={13} /> cada mes
+                {monthTxs.map((tx) =>
+                  editando === tx.id ? (
+                    <li key={tx.id} className="editing">
+                      <EditTx
+                        tx={tx}
+                        rule={store.recurrings.find((r) => r.id === tx.recurringId)}
+                        pots={store.pots}
+                        busy={busy}
+                        onSave={(cambios, proximos) => guardarEdicion(tx, cambios, proximos)}
+                        onCancel={() => setEditando(null)}
+                      />
+                    </li>
+                  ) : (
+                    <li key={tx.id}>
+                      <div>
+                        <strong>{tx.note || tx.category}</strong>
+                        <span>
+                          {moneyDate(tx.date)}
+                          {tx.kind === "income"
+                            ? " · Ingreso"
+                            : tx.out
+                              ? " · Sacado del ahorro"
+                              : ` · ${SECTION_LABEL[tx.section]}`}
+                          {tx.kind === "expense" && tx.section === "variable" && tx.category
+                            ? ` · ${tx.category}`
+                            : ""}
+                          {shared && tx.createdByName ? ` · ${tx.createdByName}` : ""}
                         </span>
-                      )}
-                      <em className={tx.kind === "income" ? "pos" : "neg"}>
-                        {tx.kind === "income" ? "+" : "−"}
-                        {formatEUR(tx.amount)}
-                      </em>
-                      {tx.recurringId && activeRecurring.includes(tx.recurringId) && (
+                      </div>
+                      <div className="tx-right">
+                        {tx.recurringId && (
+                          <span className="badge">
+                            <IconRepeat size={13} /> cada mes
+                          </span>
+                        )}
+                        <em className={tx.kind === "income" || tx.out ? "pos" : "neg"}>
+                          {tx.kind === "income" || tx.out ? "+" : "−"}
+                          {formatEUR(tx.amount)}
+                        </em>
+                        {tx.recurringId && activeRecurring.includes(tx.recurringId) && (
+                          <button
+                            type="button"
+                            className="text-btn"
+                            onClick={() => haltRecurring(tx.recurringId!)}
+                          >
+                            Dejar de repetir
+                          </button>
+                        )}
                         <button
                           type="button"
-                          className="text-btn"
-                          onClick={() => haltRecurring(tx.recurringId!)}
+                          className="icon-btn"
+                          aria-label={`Editar ${tx.note || tx.category}`}
+                          onClick={() => setEditando(tx.id)}
                         >
-                          Dejar de repetir
+                          <IconPencil size={15} />
                         </button>
-                      )}
-                      <button type="button" aria-label="Eliminar" onClick={() => removeTx(tx)}>
-                        <IconTrash size={15} />
-                      </button>
-                    </div>
-                  </li>
-                ))}
+                        <button type="button" aria-label="Eliminar" onClick={() => removeTx(tx)}>
+                          <IconTrash size={15} />
+                        </button>
+                      </div>
+                    </li>
+                  ),
+                )}
               </ul>
             )}
             {spent > 0 && <p className="footnote">Gastado este mes: {formatEUR(spent)}.</p>}
