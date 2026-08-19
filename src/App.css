@@ -256,6 +256,15 @@ body {
   color: rgba(255, 255, 255, 0.78);
 }
 
+/* Todo lo que va sobre el degradado es blanco, tenga la clase que tenga: en
+   claro la regla de "positivo" ganaba y el saldo salía en negro sobre morado.
+   Un saldo negativo tampoco se pinta de rojo aquí; ya lo dice el signo. */
+.balance .ledger-hero,
+.balance .ledger-hero.pos,
+.balance .ledger-hero.neg {
+  color: #fff;
+}
+
 .ledger-rows {
   list-style: none;
   margin: 0;
@@ -801,8 +810,14 @@ button {
   font-size: 0.85rem;
 }
 
-.history-nums .pos {
+/* Lo ahorrado (primera cifra) en verde; lo que sobra, en el color del texto,
+   igual que hacen las barras: si las dos van verdes no se distinguen. */
+.history-nums em:first-child.pos {
   color: var(--income);
+}
+
+.history-nums em:last-child.pos {
+  color: var(--ink);
 }
 
 .history-legend {
