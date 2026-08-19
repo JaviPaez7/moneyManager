@@ -923,3 +923,50 @@ footer p {
     gap: 1rem;
   }
 }
+
+/* ---- Código de invitación ---- */
+
+.book-panel.share {
+  display: grid;
+  gap: 0.8rem;
+  justify-items: start;
+}
+
+.code-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.code {
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 1.6rem;
+  letter-spacing: 0.22em;
+  color: var(--teal-deep);
+  background: #e7f1ec;
+  border: 1px solid var(--line);
+  border-radius: 0.7rem;
+  padding: 0.4rem 0.5rem 0.4rem 0.72rem;
+}
+
+.code-input {
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+.people li {
+  list-style: none;
+}
+
+.person {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 0.3rem 0.35rem 0.3rem 0.8rem;
+  background: #fbfdfc;
+  font-size: 0.92rem;
+}

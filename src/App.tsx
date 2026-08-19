@@ -12,6 +12,7 @@ import {
   createTx,
   deleteTx,
   friendlyError,
+  joinBook,
   listBooks,
   updateRecurring,
 } from "./lib/api";
@@ -355,7 +356,18 @@ function Money({ user }: { user: AuthUser }) {
             setBookId(created.id);
           }
         }}
-        onMembersChange={(updated) =>
+        onJoin={async (code) => {
+          const entrado = await run(() => joinBook(code));
+          if (!entrado) return false;
+          setBooks((prev) =>
+            prev.some((b) => b.id === entrado.id)
+              ? prev.map((b) => (b.id === entrado.id ? entrado : b))
+              : [...prev, entrado],
+          );
+          setBookId(entrado.id);
+          return true;
+        }}
+        onBookChange={(updated) =>
           setBooks((prev) => prev.map((b) => (b.id === updated.id ? updated : b)))
         }
         onError={setError}

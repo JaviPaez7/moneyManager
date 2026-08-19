@@ -69,6 +69,12 @@ const rel = (name, collectionId, opts = {}) => ({
 });
 
 const KINDS = ["income", "expense", "saving"];
+
+// Sin letras ni números que se confundan al dictarlos por teléfono (O/0, I/1).
+const ALFABETO = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+function nuevoCodigo() {
+  return Array.from({ length: 6 }, () => ALFABETO[Math.floor(Math.random() * ALFABETO.length)]).join("");
+}
 const SECTIONS = ["fijo", "suscripcion", "variable", "ahorro"];
 
 async function upsert(def) {
@@ -108,42 +114,68 @@ const usersId = collections.items.find((c) => c.name === "users")?.id;
 if (!usersId) throw new Error("No existe la colección de usuarios");
 
 // Registro abierto: cualquiera puede crearse una cuenta desde la propia app.
-// Quien ha entrado ve el nombre de los demás (hace falta para saber quién
-// apuntó cada gasto y para elegir con quién compartir un libro), pero los
-// correos quedan ocultos: con el registro abierto, listarlos permitiría a
-// cualquier desconocido cosechar las direcciones de todo el mundo.
+// Solo se ve a uno mismo y a quien comparta algún libro contigo: hace falta
+// para poner nombre a quién apuntó cada gasto, y nada más. Nadie puede
+// enumerar quién usa la app ni ver correos ajenos.
+const soloGenteDeMisLibros =
+  "id = @request.auth.id || books_via_members.members.id ?= @request.auth.id";
 await api(`/api/collections/${usersId}`, {
   method: "PATCH",
   body: JSON.stringify({
     createRule: "",
-    listRule: '@request.auth.id != ""',
-    viewRule: '@request.auth.id != ""',
+    listRule: soloGenteDeMisLibros,
+    viewRule: soloGenteDeMisLibros,
     updateRule: "id = @request.auth.id",
     deleteRule: "id = @request.auth.id",
   }),
 });
-console.log("~ actualizada users (registro abierto, correos ocultos)");
+console.log("~ actualizada users (registro abierto, sin listado de personas)");
 
 const isMember = "book.members.id ?= @request.auth.id";
 
-const books = await upsert({
+// Un libro se comparte pasando su código. Quien lo tiene puede leer ese libro
+// concreto (y solo ese: hay que traerlo con ?code=... y la regla lo comprueba)
+// y meterse dentro. No hay forma de listar libros ajenos ni de ir probando.
+const conCodigo = '@request.auth.id != "" && code = @request.query.code';
+
+const definicionBooks = (indexes) => ({
   name: "books",
   type: "base",
   fields: [
     idField,
     { name: "name", type: "text", required: true, max: 60 },
+    { name: "code", type: "text", required: true, min: 6, max: 10, pattern: "^[A-Z0-9]+$" },
     rel("owner", usersId, { required: true }),
     rel("members", usersId, { required: true, multiple: true }),
     ...stamps,
   ],
-  indexes: [],
-  listRule: "members.id ?= @request.auth.id",
-  viewRule: "members.id ?= @request.auth.id",
+  indexes,
+  listRule: `members.id ?= @request.auth.id || (${conCodigo})`,
+  viewRule: `members.id ?= @request.auth.id || (${conCodigo})`,
   createRule: '@request.auth.id != "" && @request.body.owner = @request.auth.id',
-  // Solo el dueño renombra el libro o cambia quién entra.
-  updateRule: "owner.id = @request.auth.id",
+  // El dueño manda. Por la puerta del código la lista de miembros solo puede
+  // CRECER, así que una invitación sirve para entrar y para nada más: no se
+  // puede echar al dueño, ni quedarse el libro, ni siquiera renombrarlo.
+  // (Comprobado a mano: `?=` sobre el cuerpo no filtra nada en arrays, y
+  // `:each ?=` por su cuenta tampoco impide quitar a los demás.)
+  updateRule: `owner.id = @request.auth.id || (${conCodigo} && @request.body.members:length > members:length && @request.body.members:each ?= @request.auth.id)`,
   deleteRule: "owner.id = @request.auth.id",
 });
+
+// En dos pasos a propósito: el índice único de códigos no puede crearse
+// mientras haya libros anteriores sin código, que chocarían todos entre sí.
+let books = await upsert(definicionBooks([]));
+
+const sinCodigo = await api(`/api/collections/books/records?perPage=500`);
+for (const libro of sinCodigo.items.filter((l) => !l.code)) {
+  await api(`/api/collections/books/records/${libro.id}`, {
+    method: "PATCH",
+    body: JSON.stringify({ code: nuevoCodigo() }),
+  });
+  console.log(`  código puesto a «${libro.name}»`);
+}
+
+books = await upsert(definicionBooks(["CREATE UNIQUE INDEX `idx_books_code` ON `books` (`code`)"]));
 
 const pots = await upsert({
   name: "pots",

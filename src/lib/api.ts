@@ -52,6 +52,14 @@ function toPot(record: RecordModel): SavingPot {
   };
 }
 
+// Sin letras ni números que se confundan al dictarlos (O/0, I/1).
+const ALFABETO = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+
+function nuevoCodigo() {
+  const bytes = crypto.getRandomValues(new Uint8Array(6));
+  return Array.from(bytes, (b) => ALFABETO[b % ALFABETO.length]).join("");
+}
+
 function toBook(record: RecordModel): Book {
   const members = (record.members as string[]) || [];
   const expanded = (record.expand?.members as RecordModel[] | undefined) || [];
@@ -62,6 +70,7 @@ function toBook(record: RecordModel): Book {
   return {
     id: record.id,
     name: record.name as string,
+    code: (record.code as string) || "",
     ownerId: record.owner as string,
     memberIds: members,
     memberNames,
@@ -76,17 +85,60 @@ export async function listBooks(): Promise<Book[]> {
   return records.map(toBook);
 }
 
-export async function createBook(name: string, memberIds: string[] = []): Promise<Book> {
+export async function createBook(name: string): Promise<Book> {
   const me = pb.authStore.record!.id;
-  const record = await pb.collection("books").create(
-    {
-      name,
-      owner: me,
-      members: [...new Set([me, ...memberIds])],
-    },
-    { expand: "members" },
-  );
+  // El código es único: si dos libros lo sacan igual, se reintenta.
+  for (let intento = 0; intento < 5; intento += 1) {
+    try {
+      const record = await pb.collection("books").create(
+        { name, code: nuevoCodigo(), owner: me, members: [me] },
+        { expand: "members" },
+      );
+      return toBook(record);
+    } catch (error) {
+      if (intento === 4 || !isCodigoRepetido(error)) throw error;
+    }
+  }
+  throw new Error("No he podido crear el libro");
+}
+
+function isCodigoRepetido(error: unknown) {
+  const data = (error as { response?: { data?: Record<string, unknown> } })?.response?.data;
+  return Boolean(data && "code" in data);
+}
+
+/** Genera un código nuevo: el anterior deja de servir. */
+export async function rotateCode(bookId: string): Promise<Book> {
+  const record = await pb
+    .collection("books")
+    .update(bookId, { code: nuevoCodigo() }, { expand: "members" });
   return toBook(record);
+}
+
+/**
+ * Entrar en un libro con su código. La regla del servidor solo deja leerlo y
+ * meterse si se manda el código correcto en la petición, así que no hay forma
+ * de ir probando ni de listar libros ajenos.
+ */
+export async function joinBook(rawCode: string): Promise<Book> {
+  const code = rawCode.trim().toUpperCase();
+  const me = pb.authStore.record!.id;
+
+  const found = await pb.collection("books").getList(1, 1, {
+    filter: pb.filter("code = {:code}", { code }),
+    expand: "members",
+    code,
+  });
+  const book = found.items[0];
+  if (!book) throw new Error("codigo-no-existe");
+
+  const members = (book.members as string[]) || [];
+  if (members.includes(me)) return toBook(book);
+
+  const updated = await pb
+    .collection("books")
+    .update(book.id, { members: [...members, me] }, { expand: "members", code });
+  return toBook(updated);
 }
 
 export async function renameBook(bookId: string, name: string): Promise<Book> {
@@ -94,21 +146,14 @@ export async function renameBook(bookId: string, name: string): Promise<Book> {
   return toBook(record);
 }
 
-export async function setBookMembers(bookId: string, memberIds: string[]): Promise<Book> {
-  const record = await pb
-    .collection("books")
-    .update(bookId, { members: memberIds }, { expand: "members" });
+/** Sacar a alguien de un libro. Solo el dueño, y a sí mismo no. */
+export async function removeMember(book: Book, memberId: string): Promise<Book> {
+  const record = await pb.collection("books").update(
+    book.id,
+    { members: book.memberIds.filter((id) => id !== memberId) },
+    { expand: "members" },
+  );
   return toBook(record);
-}
-
-/** Las cuentas se dan de alta a mano, así que la lista es corta y cabe entera. */
-export async function listPeople() {
-  const records = await pb.collection("users").getFullList({ sort: "name" });
-  return records.map((record) => ({
-    id: record.id,
-    name: (record.name as string) || (record.email as string),
-    email: record.email as string,
-  }));
 }
 
 export async function loadBook(bookId: string): Promise<Store> {
@@ -262,6 +307,7 @@ function isDuplicate(error: unknown) {
 
 export function friendlyError(error: unknown): string {
   const err = error as { status?: number; message?: string };
+  if (err?.message === "codigo-no-existe") return "Ese código no vale.";
   if (err?.status === 0) return "Sin conexión con el servidor.";
   if (err?.status === 400) return "Los datos no son válidos.";
   if (err?.status === 403 || err?.status === 404) return "No tienes acceso a eso.";

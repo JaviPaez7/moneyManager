@@ -17,10 +17,27 @@ personal, con varios es compartida y los dos ven y apuntan lo mismo.
 | Alta de cuentas | Desde la propia app; `infra/pb-user.mjs` para hacerlo a dedo |
 
 El registro es abierto: cualquiera puede crearse una cuenta desde la pantalla
-de entrada. Los correos no se muestran entre usuarios (`emailVisibility` en
-falso), para que nadie pueda cosechar direcciones registrándose. Cada cuenta
-arranca con su libro personal y no ve nada de los demás hasta que alguien la
-mete en un libro compartido.
+de entrada. Cada cuenta arranca con su libro personal y no ve nada de nadie:
+ni libros, ni movimientos, ni siquiera la lista de quién más usa la app (solo
+se ve a uno mismo y a quien comparta algún libro contigo).
+
+## Compartir un libro
+
+Cada libro tiene un **código** de seis caracteres. El dueño lo pasa por donde
+quiera y el otro lo pega en "Entrar con un código". Las reglas del servidor
+hacen el trabajo:
+
+- Un libro solo se puede leer si eres miembro **o** si mandas su código exacto
+  en la petición (`?code=...`). No hay forma de listar libros ajenos ni de ir
+  probando códigos a ciegas.
+- Por la puerta del código la lista de miembros solo puede **crecer**: sirve
+  para entrar y para nada más. Nadie usa una invitación para echar al dueño,
+  quedarse el libro ni renombrarlo.
+- Solo el dueño saca gente o cambia el código. Cambiarlo invalida el anterior,
+  que es la salida si un código se va de las manos.
+
+Ojo con lo que el código sí concede: quien entra ve y edita **todo** ese libro,
+como cualquier otro miembro. Es la llave de ese libro, trátalo como tal.
 
 ```bash
 # actualizar el esquema tras tocar infra/pb-schema.mjs

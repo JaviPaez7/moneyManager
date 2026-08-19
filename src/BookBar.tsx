@@ -1,13 +1,13 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 import { IconClose, IconPlus } from "./icons";
-import { listPeople, setBookMembers } from "./lib/api";
+import { removeMember, rotateCode } from "./lib/api";
 import type { Book } from "./lib/types";
 
-type Person = { id: string; name: string; email: string };
+type Panel = "none" | "new" | "share" | "join";
 
 /**
- * Selector de libros. Un libro con un solo miembro es una cuenta personal;
- * al añadir a alguien pasa a ser compartida y los dos ven lo mismo.
+ * Selector de libros. Un libro con un solo miembro es una cuenta personal; se
+ * comparte pasando su código, que el otro pega en "Entrar con un código".
  */
 export default function BookBar({
   books,
@@ -15,7 +15,8 @@ export default function BookBar({
   meId,
   onPick,
   onCreate,
-  onMembersChange,
+  onJoin,
+  onBookChange,
   onError,
 }: {
   books: Book[];
@@ -23,31 +24,32 @@ export default function BookBar({
   meId: string;
   onPick: (id: string) => void;
   onCreate: (name: string) => Promise<void>;
-  onMembersChange: (book: Book) => void;
+  onJoin: (code: string) => Promise<boolean>;
+  onBookChange: (book: Book) => void;
   onError: (message: string) => void;
 }) {
-  const [panel, setPanel] = useState<"none" | "new" | "share">("none");
+  const [panel, setPanel] = useState<Panel>("none");
   const [name, setName] = useState("");
-  const [people, setPeople] = useState<Person[]>([]);
+  const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
+  const [copiado, setCopiado] = useState(false);
 
   const book = books.find((b) => b.id === bookId);
   const isOwner = book?.ownerId === meId;
+  const others = book ? book.memberIds.filter((id) => id !== meId) : [];
 
-  useEffect(() => {
-    if (panel !== "share" || people.length > 0) return;
-    listPeople()
-      .then(setPeople)
-      .catch(() => onError("No he podido cargar la lista de personas."));
-  }, [panel, people.length, onError]);
+  function abrir(siguiente: Panel) {
+    setPanel(panel === siguiente ? "none" : siguiente);
+    setCopiado(false);
+  }
 
   async function submitNew(e: FormEvent) {
     e.preventDefault();
-    const clean = name.trim();
-    if (!clean) return;
+    const limpio = name.trim();
+    if (!limpio) return;
     setBusy(true);
     try {
-      await onCreate(clean);
+      await onCreate(limpio);
       setName("");
       setPanel("none");
     } finally {
@@ -55,22 +57,56 @@ export default function BookBar({
     }
   }
 
-  async function toggleMember(person: Person) {
-    if (!book || person.id === book.ownerId) return;
-    const next = book.memberIds.includes(person.id)
-      ? book.memberIds.filter((id) => id !== person.id)
-      : [...book.memberIds, person.id];
+  async function submitJoin(e: FormEvent) {
+    e.preventDefault();
+    const limpio = code.trim();
+    if (!limpio) return;
     setBusy(true);
     try {
-      onMembersChange(await setBookMembers(book.id, next));
-    } catch {
-      onError("No he podido cambiar quién entra en este libro.");
+      if (await onJoin(limpio)) {
+        setCode("");
+        setPanel("none");
+      }
     } finally {
       setBusy(false);
     }
   }
 
-  const others = book ? book.memberIds.filter((id) => id !== meId) : [];
+  async function copiar() {
+    if (!book) return;
+    try {
+      await navigator.clipboard.writeText(book.code);
+      setCopiado(true);
+      setTimeout(() => setCopiado(false), 2000);
+    } catch {
+      onError("Este navegador no me deja copiar; apúntalo a mano.");
+    }
+  }
+
+  async function otroCodigo() {
+    if (!book) return;
+    setBusy(true);
+    try {
+      onBookChange(await rotateCode(book.id));
+      setCopiado(false);
+    } catch {
+      onError("No he podido cambiar el código.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function sacar(memberId: string) {
+    if (!book) return;
+    setBusy(true);
+    try {
+      onBookChange(await removeMember(book, memberId));
+    } catch {
+      onError("No he podido sacar a esa persona del libro.");
+    } finally {
+      setBusy(false);
+    }
+  }
 
   return (
     <div className="bookbar">
@@ -87,23 +123,19 @@ export default function BookBar({
           </select>
         </label>
 
-        <button
-          type="button"
-          className="ghost small"
-          onClick={() => setPanel(panel === "new" ? "none" : "new")}
-        >
+        <button type="button" className="ghost small" onClick={() => abrir("new")}>
           <IconPlus size={14} /> Libro
         </button>
 
         {isOwner && (
-          <button
-            type="button"
-            className="ghost small"
-            onClick={() => setPanel(panel === "share" ? "none" : "share")}
-          >
+          <button type="button" className="ghost small" onClick={() => abrir("share")}>
             Compartir
           </button>
         )}
+
+        <button type="button" className="ghost small" onClick={() => abrir("join")}>
+          Entrar con un código
+        </button>
 
         {others.length > 0 && book && (
           <span className="with-who">
@@ -134,29 +166,70 @@ export default function BookBar({
         </form>
       )}
 
+      {panel === "join" && (
+        <form className="book-panel" onSubmit={submitJoin}>
+          <label>
+            Código del libro
+            <input
+              value={code}
+              onChange={(e) => setCode(e.target.value.toUpperCase())}
+              placeholder="ABC234"
+              maxLength={10}
+              autoCapitalize="characters"
+              autoComplete="off"
+              className="code-input"
+              autoFocus
+              required
+            />
+          </label>
+          <button type="submit" className="ghost" disabled={busy}>
+            {busy ? "Entrando…" : "Entrar"}
+          </button>
+          <button type="button" className="icon-btn" aria-label="Cerrar" onClick={() => setPanel("none")}>
+            <IconClose size={14} />
+          </button>
+        </form>
+      )}
+
       {panel === "share" && book && (
-        <div className="book-panel">
-          <p className="hint">Quién entra en «{book.name}»</p>
-          <ul className="people">
-            {people.map((person) => {
-              const inside = book.memberIds.includes(person.id);
-              const owner = person.id === book.ownerId;
-              return (
-                <li key={person.id}>
-                  <label className={inside ? "on" : ""}>
-                    <input
-                      type="checkbox"
-                      checked={inside}
-                      disabled={owner || busy}
-                      onChange={() => toggleMember(person)}
-                    />
-                    {person.name}
-                    {owner && <span className="badge">dueño</span>}
-                  </label>
+        <div className="book-panel share">
+          <p className="hint">
+            Pásale este código a quien quieras meter en «{book.name}». Con él entra desde
+            «Entrar con un código».
+          </p>
+
+          <div className="code-row">
+            <strong className="code">{book.code}</strong>
+            <button type="button" className="ghost small" onClick={copiar}>
+              {copiado ? "Copiado" : "Copiar"}
+            </button>
+            <button type="button" className="text-btn" onClick={otroCodigo} disabled={busy}>
+              Cambiar el código
+            </button>
+          </div>
+
+          {others.length > 0 && (
+            <ul className="people">
+              {others.map((id) => (
+                <li key={id}>
+                  <span className="person">
+                    {book.memberNames[id] || "alguien"}
+                    <button
+                      type="button"
+                      className="icon-btn"
+                      title="Sacar del libro"
+                      aria-label={`Sacar a ${book.memberNames[id] || "esta persona"} del libro`}
+                      onClick={() => sacar(id)}
+                      disabled={busy}
+                    >
+                      <IconClose size={13} />
+                    </button>
+                  </span>
                 </li>
-              );
-            })}
-          </ul>
+              ))}
+            </ul>
+          )}
+
           <button type="button" className="ghost small" onClick={() => setPanel("none")}>
             Listo
           </button>

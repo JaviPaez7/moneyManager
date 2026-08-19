@@ -66,6 +66,8 @@ export const KIND_SECTION: Record<Kind, Section> = {
 export type Book = {
   id: string;
   name: string;
+  /** Código para invitar a alguien a este libro. */
+  code: string;
   ownerId: string;
   memberIds: string[];
   memberNames: Record<string, string>;
