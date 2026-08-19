@@ -412,7 +412,7 @@ function Money({ user }: { user: AuthUser }) {
     <div className="shell">
       <header className="top">
         <div>
-          <h1>Money</h1>
+          <h1>Neto</h1>
           <p className="lede">
             Lo que cobras, lo que se repite solo y lo que apartas.
             {shared ? " Este libro lo lleváis entre varios." : ""}
@@ -512,12 +512,13 @@ function Money({ user }: { user: AuthUser }) {
         <>
           <div className="stage">
             <section className="ledger" aria-label="Resumen del mes">
-              <p className="ledger-kicker">Después de fijos y suscripciones</p>
-              <p className={`ledger-hero ${afterFixed >= 0 ? "pos" : "neg"}`}>{formatEUR(afterFixed)}</p>
+              <p key={month} className={`ledger-hero enter ${afterFixed >= 0 ? "pos" : "neg"}`}>
+                {formatEUR(afterFixed)}
+              </p>
               <p className="ledger-sub">
                 {income > 0
-                  ? `de ${formatEUR(income)} cobrados este mes`
-                  : "Añade lo que cobras para ver qué te queda"}
+                  ? `Te queda esto de los ${formatEUR(income)} que cobraste, ya descontados los fijos y las suscripciones.`
+                  : "Apunta lo que cobras y aquí verás lo que te queda."}
               </p>
 
               <ul className="ledger-rows">
@@ -1000,7 +1001,7 @@ function Money({ user }: { user: AuthUser }) {
       )}
 
       <footer>
-        <p>JaviStudio · money.javistudio.dev</p>
+        <p>Neto · JaviStudio</p>
       </footer>
     </div>
   );

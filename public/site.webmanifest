@@ -1,36 +1,16 @@
 {
-  "name": "Money · JaviStudio",
-  "short_name": "Money",
-  "description": "Ingresos, fijos, suscripciones y ahorro, en cuentas propias y compartidas.",
+  "name": "Neto",
+  "short_name": "Neto",
+  "description": "Lo que te queda cada mes, sin adornos.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#e8eee9",
-  "theme_color": "#0b3f38",
+  "background_color": "#FAFAF8",
+  "theme_color": "#FAFAF8",
   "lang": "es",
   "icons": [
-    {
-      "src": "/favicon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
-      "purpose": "any"
-    },
-    {
-      "src": "/apple-touch-icon.png",
-      "sizes": "180x180",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "/icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any maskable"
-    }
+    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "/apple-touch-icon.png", "sizes": "180x180", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
   ]
 }

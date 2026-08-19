@@ -4,7 +4,7 @@
  * Idempotente: crea las colecciones si no existen y actualiza campos y reglas
  * si ya estaban. Se ejecuta a mano contra la instancia, nunca desde CI:
  *
- *   PB_URL=https://api-money.javistudio.dev \
+ *   PB_URL=https://api-neto.javistudio.dev \
  *   PB_ADMIN_EMAIL=... PB_ADMIN_PASSWORD=... \
  *   node infra/pb-schema.mjs
  *
@@ -13,7 +13,7 @@
  * siempre comprueban que quien pide es miembro del libro.
  */
 
-const PB_URL = (process.env.PB_URL || "https://api-money.javistudio.dev").replace(/\/$/, "");
+const PB_URL = (process.env.PB_URL || "https://api-neto.javistudio.dev").replace(/\/$/, "");
 const EMAIL = process.env.PB_ADMIN_EMAIL;
 const PASSWORD = process.env.PB_ADMIN_PASSWORD;
 

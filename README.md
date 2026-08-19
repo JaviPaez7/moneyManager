@@ -1,9 +1,9 @@
-# Money
+# Neto
 
-Control de ingresos, gastos fijos, suscripciones, variables y ahorro. Los fijos se
+Lo que te queda cada mes, sin adornos. Control de ingresos, gastos fijos, suscripciones, variables y ahorro. Los fijos se
 arrastran al mes siguiente.
 
-Los datos viven en un PocketBase propio (`api-money.javistudio.dev`) detrás de
+Los datos viven en un PocketBase propio (`api-neto.javistudio.dev`) detrás de
 login. Todo cuelga de un **libro de cuentas**: con un miembro es una cuenta
 personal, con varios es compartida y los dos ven y apuntan lo mismo.
 
@@ -12,7 +12,8 @@ personal, con varios es compartida y los dos ven y apuntan lo mismo.
 | Pieza | Dónde |
 |---|---|
 | API y auth | PocketBase en `/opt/money-api` (VPS), volumen `money-api_pb_data` |
-| Panel | https://api-money.javistudio.dev/_/ |
+| Panel | https://api-neto.javistudio.dev/_/ |
+| Identidad | `DESIGN.md`; iconos e imagen social con `node infra/icons.mjs` |
 | Esquema | `infra/pb-schema.mjs` (idempotente) |
 | Alta de cuentas | Desde la propia app; `infra/pb-user.mjs` para hacerlo a dedo |
 
@@ -49,4 +50,4 @@ PB_ADMIN_EMAIL=... PB_ADMIN_PASSWORD=... node infra/pb-user.mjs correo@x.com "co
 
 Las credenciales del panel están en `/opt/money-api/.env` en la VPS (fuera de git).
 
-Live: https://money.javistudio.dev
+Live: https://neto.javistudio.dev

@@ -41,11 +41,11 @@ export default function Login({ onIn }: { onIn: () => void }) {
   return (
     <div className="gate">
       <form className="gate-card" onSubmit={submit}>
-        <h1>Money</h1>
+        <h1>Neto</h1>
         <p className="lede">
           {modo === "entrar"
-            ? "Entra para ver tus cuentas y las compartidas."
-            : "Créate una cuenta y empieza a apuntar."}
+            ? "Lo que te queda cada mes, sin adornos. Entra para verlo."
+            : "Crea tu cuenta y empieza a apuntar."}
         </p>
 
         {modo === "crear" && (

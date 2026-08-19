@@ -9,7 +9,7 @@
  * Si la cuenta ya existe le cambia la contraseña y el nombre.
  */
 
-const PB_URL = (process.env.PB_URL || "https://api-money.javistudio.dev").replace(/\/$/, "");
+const PB_URL = (process.env.PB_URL || "https://api-neto.javistudio.dev").replace(/\/$/, "");
 const [email, password, name] = process.argv.slice(2);
 
 if (!email || !password) {

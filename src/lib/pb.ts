@@ -3,7 +3,7 @@ import PocketBase from "pocketbase";
 // El backend vive en su propio subdominio; en local se puede apuntar a otra
 // instancia con VITE_PB_URL.
 export const pb = new PocketBase(
-  import.meta.env.VITE_PB_URL || "https://api-money.javistudio.dev",
+  import.meta.env.VITE_PB_URL || "https://api-neto.javistudio.dev",
 );
 
 // Cancelar peticiones al vuelo rompe las recargas que se disparan a la vez
