@@ -1,4 +1,4 @@
-import type { Tx } from "./types";
+import type { Budget, Tx } from "./types";
 
 export type MonthSummary = {
   month: string;
@@ -69,4 +69,57 @@ export function potTotals(txs: Tx[]): Map<string, number> {
     map.set(tx.potId, (map.get(tx.potId) || 0) + (tx.out ? -tx.amount : tx.amount));
   }
   return map;
+}
+
+export type BudgetRow = {
+  category: string;
+  amount: number;
+  spent: number;
+  left: number;
+  ratio: number;
+  budgetId: string;
+};
+
+/**
+ * El tope que vale para un mes es el último puesto en ese mes o antes. Así
+ * subirlo en septiembre no cambia lo que se ve en agosto.
+ */
+export function budgetsForMonth(budgets: Budget[], month: string): Map<string, Budget> {
+  const vigentes = new Map<string, Budget>();
+  for (const b of budgets) {
+    if (b.from > month) continue;
+    const previo = vigentes.get(b.category);
+    if (!previo || b.from > previo.from) vigentes.set(b.category, b);
+  }
+  return vigentes;
+}
+
+/** Lo gastado en cada categoría variable de un mes. */
+export function spentByCategory(txs: Tx[], month: string): Map<string, number> {
+  const map = new Map<string, number>();
+  for (const tx of txs) {
+    if (tx.kind !== "expense" || tx.section !== "variable") continue;
+    if (!tx.date.startsWith(month)) continue;
+    const cat = tx.category || "Otros";
+    map.set(cat, (map.get(cat) || 0) + tx.amount);
+  }
+  return map;
+}
+
+export function budgetRows(budgets: Budget[], txs: Tx[], month: string): BudgetRow[] {
+  const vigentes = budgetsForMonth(budgets, month);
+  const gastado = spentByCategory(txs, month);
+  return [...vigentes.entries()]
+    .map(([category, b]) => {
+      const spent = gastado.get(category) || 0;
+      return {
+        category,
+        amount: b.amount,
+        spent,
+        left: b.amount - spent,
+        ratio: b.amount > 0 ? Math.min(1, spent / b.amount) : 0,
+        budgetId: b.id,
+      };
+    })
+    .sort((a, b) => b.ratio - a.ratio);
 }

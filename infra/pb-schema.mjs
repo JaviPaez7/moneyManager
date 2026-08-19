@@ -221,6 +221,29 @@ const recurrings = await upsert({
   deleteRule: isMember,
 });
 
+// Topes por categoría. `from` es el mes desde el que vale, así que cambiar el
+// tope no reescribe la historia: agosto se queda con lo que había en agosto.
+await upsert({
+  name: "budgets",
+  type: "base",
+  fields: [
+    idField,
+    rel("book", books.id, { required: true, cascadeDelete: true }),
+    { name: "category", type: "text", required: true, max: 40 },
+    { name: "amount", type: "number", required: true, min: 0 },
+    { name: "from", type: "text", required: true, min: 7, max: 7, pattern: "^\\d{4}-\\d{2}$" },
+    ...stamps,
+  ],
+  indexes: [
+    "CREATE UNIQUE INDEX `idx_budgets_unico` ON `budgets` (`book`, `category`, `from`)",
+  ],
+  listRule: isMember,
+  viewRule: isMember,
+  createRule: isMember,
+  updateRule: isMember,
+  deleteRule: isMember,
+});
+
 await upsert({
   name: "txs",
   type: "base",

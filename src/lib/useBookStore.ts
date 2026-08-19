@@ -4,7 +4,7 @@ import { pb } from "./pb";
 import { friendlyError, loadBook, materializeMonth } from "./api";
 import type { Store } from "./types";
 
-const emptyStore = (): Store => ({ v: 2, txs: [], recurrings: [], pots: [] });
+const emptyStore = (): Store => ({ v: 2, txs: [], recurrings: [], pots: [], budgets: [] });
 
 const cacheKey = (bookId: string) => `moneymanager.book.${bookId}`;
 
@@ -13,7 +13,15 @@ function readCache(bookId: string): Store | null {
     const raw = localStorage.getItem(cacheKey(bookId));
     if (!raw) return null;
     const parsed = JSON.parse(raw) as Store;
-    if (parsed && Array.isArray(parsed.txs)) return parsed;
+    // La caché puede venir de una versión anterior, sin los campos nuevos.
+    if (parsed && Array.isArray(parsed.txs)) {
+      return {
+        ...parsed,
+        recurrings: parsed.recurrings || [],
+        pots: parsed.pots || [],
+        budgets: parsed.budgets || [],
+      };
+    }
   } catch {
     /* caché corrupta: se ignora y se tira del servidor */
   }
@@ -113,7 +121,7 @@ export function useBookStore(bookId: string | null, month: string) {
       if (event.record?.book !== bookId) return;
       refresh();
     };
-    const subs = ["txs", "recurrings", "pots"].map((name) =>
+    const subs = ["txs", "recurrings", "pots", "budgets"].map((name) =>
       pb.collection(name).subscribe("*", onChange, { filter }),
     );
     return () => {

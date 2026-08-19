@@ -36,11 +36,23 @@ export type SavingPot = {
   target: number;
 };
 
+/**
+ * Tope de gasto de una categoría. `from` es el mes desde el que vale: cambiar
+ * el tope en septiembre no reescribe lo que había en agosto.
+ */
+export type Budget = {
+  id: string;
+  category: string;
+  amount: number;
+  from: string;
+};
+
 export type Store = {
   v: 2;
   txs: Tx[];
   recurrings: Recurring[];
   pots: SavingPot[];
+  budgets: Budget[];
 };
 
 export const VARIABLE_CATS = [

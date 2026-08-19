@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react
 import "./App.css";
 import BookBar from "./BookBar";
 import History from "./History";
+import Budgets from "./Budgets";
 import EditTx from "./EditTx";
 import Login from "./Login";
 import Password from "./Password";
@@ -10,6 +11,7 @@ import {
   createBook,
   createPot,
   createRecurring,
+  deleteBudget,
   createTx,
   deleteBook,
   deletePot,
@@ -17,6 +19,7 @@ import {
   friendlyError,
   joinBook,
   listBooks,
+  setBudget,
   updatePot,
   updateRecurring,
   updateTx,
@@ -379,6 +382,28 @@ function Money({ user }: { user: AuthUser }) {
         // Los movimientos se quedan; solo pierden el bote al que apuntaban.
         txs: prev.txs.map((t) => (t.potId === potId ? { ...t, potId: undefined } : t)),
       }));
+      return true;
+    });
+  }
+
+  async function ponerTope(category: string, amount: number) {
+    if (!bookId) return;
+    await run(async () => {
+      const tope = await setBudget(bookId, category, amount, month, store.budgets);
+      setStore((prev) => ({
+        ...prev,
+        budgets: prev.budgets.some((b) => b.id === tope.id)
+          ? prev.budgets.map((b) => (b.id === tope.id ? tope : b))
+          : [...prev.budgets, tope],
+      }));
+      return tope;
+    });
+  }
+
+  async function quitarTope(budgetId: string) {
+    await run(async () => {
+      await deleteBudget(budgetId);
+      setStore((prev) => ({ ...prev, budgets: prev.budgets.filter((b) => b.id !== budgetId) }));
       return true;
     });
   }
@@ -797,6 +822,15 @@ function Money({ user }: { user: AuthUser }) {
               onStop={haltRecurring}
             />
           </div>
+
+          <Budgets
+            budgets={store.budgets}
+            txs={store.txs}
+            month={month}
+            busy={busy}
+            onSet={ponerTope}
+            onRemove={quitarTope}
+          />
 
           <History txs={store.txs} onPickMonth={setMonth} />
 

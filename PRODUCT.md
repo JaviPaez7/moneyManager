@@ -26,11 +26,17 @@ qué queda después de los fijos.
 
 ## Positioning
 
-No es una app de presupuestos y lo es a propósito: Javi rechazó explícitamente los
-presupuestos, las previsiones y las alertas («nah nah ni quiero»). Lo que la diferencia
-de un Excel o de las apps de banco es que **los gastos fijos y las suscripciones se
-arrastran solos al mes siguiente**, así que el mes empieza ya casi escrito, y que un
-mismo libro puede llevarse entre dos personas viendo cada una quién apuntó qué.
+Lo que la diferencia de un Excel o de las apps de banco es que **los gastos fijos y las
+suscripciones se arrastran solos al mes siguiente**, así que el mes empieza ya casi
+escrito, y que un mismo libro puede llevarse entre dos personas viendo cada una quién
+apuntó qué.
+
+**Sobre los presupuestos (19/08/2026):** al pedir la app Javi los rechazó de plano
+(«nah nah ni quiero»), y ese rechazo estuvo escrito aquí. Ese mismo día pidió lo
+contrario: poder poner un tope por categoría —250 € de ocio este mes— y verlo
+descontarse. Se hace, pero acotado a eso: **un tope y lo que queda**. Nada de
+previsiones, avisos, notificaciones ni recomendaciones; eso sigue fuera y es lo que
+mantiene la app siendo un registro y no un cuadro de mandos.
 
 ## Operating Context
 

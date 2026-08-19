@@ -12,6 +12,7 @@ const empty = (): Store => ({
   txs: [],
   recurrings: [],
   pots: [],
+  budgets: [],
 });
 
 type LegacyTx = {
@@ -73,6 +74,7 @@ export function loadStore(): Store {
           txs: parsed.txs,
           recurrings: parsed.recurrings || [],
           pots: parsed.pots || [],
+          budgets: parsed.budgets || [],
         };
       }
     }

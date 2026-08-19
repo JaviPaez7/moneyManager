@@ -1,7 +1,7 @@
 import type { RecordModel } from "pocketbase";
 import { pb } from "./pb";
 import { clampDay } from "./format";
-import type { Book, Kind, Recurring, SavingPot, Section, Store, Tx } from "./types";
+import type { Book, Budget, Kind, Recurring, SavingPot, Section, Store, Tx } from "./types";
 
 /**
  * Todo cuelga de un libro de cuentas. Un libro con un miembro es una cuenta
@@ -59,6 +59,15 @@ const ALFABETO = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 function nuevoCodigo() {
   const bytes = crypto.getRandomValues(new Uint8Array(6));
   return Array.from(bytes, (b) => ALFABETO[b % ALFABETO.length]).join("");
+}
+
+function toBudget(record: RecordModel): Budget {
+  return {
+    id: record.id,
+    category: record.category as string,
+    amount: record.amount as number,
+    from: record.from as string,
+  };
 }
 
 function toBook(record: RecordModel): Book {
@@ -159,16 +168,18 @@ export async function removeMember(book: Book, memberId: string): Promise<Book> 
 
 export async function loadBook(bookId: string): Promise<Store> {
   const filter = pb.filter("book = {:book}", { book: bookId });
-  const [txs, recurrings, pots] = await Promise.all([
+  const [txs, recurrings, pots, budgets] = await Promise.all([
     pb.collection("txs").getFullList({ filter, sort: "-date", expand: "createdBy" }),
     pb.collection("recurrings").getFullList({ filter, sort: "-created" }),
     pb.collection("pots").getFullList({ filter, sort: "created" }),
+    pb.collection("budgets").getFullList({ filter, sort: "from" }),
   ]);
   return {
     v: 2,
     txs: txs.map(toTx),
     recurrings: recurrings.map(toRecurring),
     pots: pots.map(toPot),
+    budgets: budgets.map(toBudget),
   };
 }
 
@@ -260,6 +271,31 @@ export async function updatePot(potId: string, patch: { name?: string; target?: 
 
 export async function deletePot(potId: string): Promise<void> {
   await pb.collection("pots").delete(potId);
+}
+
+/**
+ * Poner (o cambiar) el tope de una categoría a partir de un mes. Si ya había
+ * uno puesto ese mismo mes se actualiza, para no acumular registros cada vez
+ * que se corrige una cifra.
+ */
+export async function setBudget(
+  bookId: string,
+  category: string,
+  amount: number,
+  from: string,
+  existentes: Budget[],
+): Promise<Budget> {
+  const mismoMes = existentes.find((b) => b.category === category && b.from === from);
+  if (mismoMes) {
+    return toBudget(await pb.collection("budgets").update(mismoMes.id, { amount }));
+  }
+  return toBudget(
+    await pb.collection("budgets").create({ book: bookId, category, amount, from }),
+  );
+}
+
+export async function deleteBudget(budgetId: string): Promise<void> {
+  await pb.collection("budgets").delete(budgetId);
 }
 
 export async function deleteBook(bookId: string): Promise<void> {
