@@ -70,6 +70,7 @@ body,
 body {
   margin: 0;
   background: var(--paper);
+  overflow-x: hidden;
 }
 
 ::selection {
@@ -175,10 +176,16 @@ body {
   color: var(--accent);
 }
 
+.who > * + *::before {
+  content: "/";
+  margin-right: 0.65rem;
+  color: var(--rule);
+}
+
 .who {
   display: inline-flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.65rem;
   font-family: var(--mono);
   font-size: 0.75rem;
   letter-spacing: 0.06em;
@@ -321,8 +328,15 @@ select {
   padding: 0.5rem 0;
   background: transparent;
   color: var(--ink);
-  font-family: inherit;
+  font-family: "Archivo", system-ui, sans-serif;
   font-size: 1.05rem;
+}
+
+/* Los importes y las fechas son medidas: van en monoespaciada. */
+input[inputmode="decimal"],
+input[type="date"] {
+  font-family: var(--mono);
+  font-size: 1rem;
 }
 
 input:focus,
@@ -385,21 +399,38 @@ input::placeholder {
 .chips label {
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
   cursor: pointer;
-  font-family: inherit;
+  font-family: "Archivo", sans-serif;
   font-size: 1rem;
   letter-spacing: 0;
   text-transform: none;
   color: var(--muted);
+  padding-bottom: 0.15rem;
+  border-bottom: 2px solid transparent;
+}
+
+.chips label:hover {
+  color: var(--ink);
 }
 
 .chips label.on {
   color: var(--accent);
   font-weight: 600;
+  border-bottom-color: var(--accent);
 }
 
-.chips input,
+.chips input {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+}
+
+.chips label:focus-within {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
 .check input,
 .people input {
   width: auto;
@@ -1055,6 +1086,17 @@ footer p {
     gap: 0.75rem;
   }
 
+  .top > div:first-child {
+    flex: 1 1 100%;
+  }
+
+  .top-right {
+    flex: 1 1 100%;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 0.75rem;
+  }
+
   .history,
   .pots,
   .movements {
@@ -1068,9 +1110,14 @@ footer p {
     padding-top: 1.25rem;
   }
 
-  .top-right {
-    width: 100%;
-    justify-content: space-between;
+  .month-nav span {
+    min-width: 7rem;
+    font-size: 0.72rem;
+  }
+
+  .who {
+    font-size: 0.68rem;
+    gap: 0.6rem;
   }
 
   .history-rows li {
