@@ -83,6 +83,7 @@ function Money({ user }: { user: AuthUser }) {
   const [editando, setEditando] = useState<string | null>(null);
   const [sacandoDe, setSacandoDe] = useState<string | null>(null);
   const [renombrando, setRenombrando] = useState<string | null>(null);
+  const [sinRed, setSinRed] = useState(() => !navigator.onLine);
 
   const { store, setStore, loading, error, setError } = useBookStore(bookId || null, month);
 
@@ -111,6 +112,18 @@ function Money({ user }: { user: AuthUser }) {
   useEffect(() => {
     if (bookId) localStorage.setItem(BOOK_KEY, bookId);
   }, [bookId]);
+
+  // Sin cobertura la app abre igual y enseña lo último que vio, pero hay que
+  // decirlo: si no, parece que los datos están mal.
+  useEffect(() => {
+    const cambio = () => setSinRed(!navigator.onLine);
+    window.addEventListener("online", cambio);
+    window.addEventListener("offline", cambio);
+    return () => {
+      window.removeEventListener("online", cambio);
+      window.removeEventListener("offline", cambio);
+    };
+  }, []);
 
   useEffect(() => {
     setForm((prev) => {
@@ -477,7 +490,13 @@ function Money({ user }: { user: AuthUser }) {
         </div>
       )}
 
-      {error && (
+      {sinRed && (
+        <p className="banner offline" role="status">
+          Sin conexión. Ves lo último que se descargó; para apuntar algo hace falta red.
+        </p>
+      )}
+
+      {error && !sinRed && (
         <p className="banner error" role="status">
           {error}
         </p>

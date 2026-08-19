@@ -1165,3 +1165,8 @@ footer p {
     transition: none !important;
   }
 }
+
+.banner.offline {
+  background: color-mix(in srgb, var(--accent) 16%, var(--card));
+  color: var(--ink);
+}

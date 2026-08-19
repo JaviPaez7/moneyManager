@@ -20,7 +20,7 @@ const AZUL = "#3E7BFA";
  * La marca: lo que entra, lo que sale y lo que queda. Tres barras que menguan;
  * la última, la que importa, en azul.
  */
-function marca({ fondo, barras, ultima, escala = 1, margen = 0 }) {
+function marca({ fondo, barras, escala = 1, margen = 0 }) {
   const anchos = [60, 40, 24];
   const y = [24, 44, 64];
   const barra = (i) => {
@@ -58,15 +58,15 @@ function png(svg, size, salida) {
 }
 
 // Favicon: sin fondo redondeado, que el navegador ya lo encuadra.
-const favicon = marca({ fondo: TINTA, barras: PAPEL, ultima: AZUL, margen: 20 });
+const favicon = marca({ fondo: TINTA, barras: PAPEL, margen: 20 });
 writeFileSync("public/favicon.svg", favicon);
 console.log("public/favicon.svg");
 
 // iOS recorta el suyo, así que va a sangre y con la marca al 100%.
-png(marca({ fondo: TINTA, barras: PAPEL, ultima: AZUL }), 180, "public/apple-touch-icon.png");
+png(marca({ fondo: TINTA, barras: PAPEL }), 180, "public/apple-touch-icon.png");
 
 // Android enmascara: la marca se encoge para caber en la zona segura.
-const maskable = marca({ fondo: TINTA, barras: PAPEL, ultima: AZUL, escala: 0.68 });
+const maskable = marca({ fondo: TINTA, barras: PAPEL, escala: 0.68 });
 png(maskable, 192, "public/icon-192.png");
 png(maskable, 512, "public/icon-512.png");
 
