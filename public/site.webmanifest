@@ -4,8 +4,8 @@
   "description": "Lo que te queda cada mes, sin adornos.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#FAFAF8",
-  "theme_color": "#FAFAF8",
+  "background_color": "#0B0C0F",
+  "theme_color": "#0B0C0F",
   "lang": "es",
   "icons": [
     { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },

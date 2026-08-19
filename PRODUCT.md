@@ -68,6 +68,11 @@ Restricciones técnicas:
   nombre propio.
 - El listón: que no parezca un proyecto de fin de semana. Tiene que aguantar que se
   enseñe.
+- **Preferencia declarada (19/08/2026): la app debe parecerse a Revolut.** Javi la eligió
+  después de ver funcionando una dirección propia y distinta, así que es una decisión
+  informada, no un descarte por pereza. El listón de acabado es Revolut: si algo se ve
+  peor que allí, está mal. Los dos modos, claro y oscuro, son de primera clase y siguen
+  al sistema del móvil.
 
 ## Evidence on Hand
 

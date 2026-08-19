@@ -34,6 +34,7 @@ import {
 } from "./lib/format";
 import { dismissLocalStore, pendingLocalStore, uploadLocalStore } from "./lib/migrate";
 import { currentUser, pb, type AuthUser } from "./lib/pb";
+import { colorDe, inicial } from "./lib/avatar";
 import { potTotals } from "./lib/summary";
 import type { Book, Kind, Section, Tx } from "./lib/types";
 import { KIND_SECTION, SECTION_LABEL, VARIABLE_CATS } from "./lib/types";
@@ -512,14 +513,17 @@ function Money({ user }: { user: AuthUser }) {
         <>
           <div className="stage">
             <section className="ledger" aria-label="Resumen del mes">
-              <p key={month} className={`ledger-hero enter ${afterFixed >= 0 ? "pos" : "neg"}`}>
-                {formatEUR(afterFixed)}
-              </p>
-              <p className="ledger-sub">
-                {income > 0
-                  ? `Te queda esto de los ${formatEUR(income)} que cobraste, ya descontados los fijos y las suscripciones.`
-                  : "Apunta lo que cobras y aquí verás lo que te queda."}
-              </p>
+              <div className="balance">
+                <p className="balance-label">Te queda este mes</p>
+                <p key={month} className={`ledger-hero enter ${afterFixed >= 0 ? "pos" : "neg"}`}>
+                  {formatEUR(afterFixed)}
+                </p>
+                <p className="ledger-sub">
+                  {income > 0
+                    ? `De ${formatEUR(income)} cobrados, ya sin fijos ni suscripciones`
+                    : "Apunta lo que cobras y aquí verás lo que te queda"}
+                </p>
+              </div>
 
               <ul className="ledger-rows">
                 <li>
@@ -944,7 +948,10 @@ function Money({ user }: { user: AuthUser }) {
                     </li>
                   ) : (
                     <li key={tx.id}>
-                      <div>
+                      <span className="av" style={{ background: colorDe(tx.note || tx.category) }} aria-hidden>
+                        {inicial(tx.note || tx.category)}
+                      </span>
+                      <div className="tx-body">
                         <strong>{tx.note || tx.category}</strong>
                         <span>
                           {moneyDate(tx.date)}
@@ -1036,7 +1043,10 @@ function SectionList({
         <ul className="mini-list">
           {rows.map((tx) => (
             <li key={tx.id}>
-              <div>
+              <span className="av" style={{ background: colorDe(tx.note || tx.category) }} aria-hidden>
+                {inicial(tx.note || tx.category)}
+              </span>
+              <div className="tx-body">
                 <strong>{tx.note || tx.category}</strong>
                 {tx.recurringId && (
                   <span className="badge">

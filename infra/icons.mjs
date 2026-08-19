@@ -11,9 +11,10 @@
 import { Resvg } from "@resvg/resvg-js";
 import { writeFileSync } from "node:fs";
 
-const TINTA = "#101010";
-const AZUL = "#0033FF";
-const PAPEL = "#FAFAF8";
+const TINTA = "#0B0C0F";
+const PAPEL = "#FFFFFF";
+const MORADO = "#7B61FF";
+const AZUL = "#3E7BFA";
 
 /**
  * La marca: lo que entra, lo que sale y lo que queda. Tres barras que menguan;
@@ -27,13 +28,15 @@ function marca({ fondo, barras, ultima, escala = 1, margen = 0 }) {
     const x = 50 - (60 * escala) / 2;
     const alto = 11 * escala;
     const cy = 50 + (y[i] + 5.5 - 50) * escala - alto / 2;
-    const color = i === 2 ? ultima : barras;
+    const color = i === 2 ? "url(#g)" : barras;
     return `<rect x="${x.toFixed(2)}" y="${cy.toFixed(2)}" width="${w.toFixed(2)}" height="${alto.toFixed(2)}" rx="${(alto / 2).toFixed(2)}" fill="${color}"${i === 1 ? ' opacity="0.55"' : ""}/>`;
   };
   const fondoSvg = fondo
     ? `<rect width="100" height="100"${margen ? ` rx="${margen}"` : ""} fill="${fondo}"/>`
     : "";
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">${fondoSvg}${barra(0)}${barra(1)}${barra(2)}</svg>`;
+  // La barra que queda lleva el degradado de la app.
+  const grad = `<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${MORADO}"/><stop offset="1" stop-color="${AZUL}"/></linearGradient></defs>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">${grad}${fondoSvg}${barra(0)}${barra(1)}${barra(2)}</svg>`;
 }
 
 // La imagen para compartir tiene que salir con las tipografías de la marca,
@@ -70,25 +73,35 @@ png(maskable, 512, "public/icon-512.png");
 /* ---------- imagen para compartir enlaces ---------- */
 
 const og = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">
-  <rect width="1200" height="630" fill="${PAPEL}"/>
-  <g transform="translate(80 74) scale(1.1)">
-    ${marca({ fondo: TINTA, barras: PAPEL, ultima: AZUL, margen: 20 }).replace(/<\/?svg[^>]*>/g, "")}
+  <defs>
+    <linearGradient id="tarjeta" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="${MORADO}"/>
+      <stop offset="1" stop-color="${AZUL}"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="630" fill="${TINTA}"/>
+
+  <g transform="translate(80 62) scale(0.72)">
+    ${marca({ fondo: "#16181D", barras: PAPEL, margen: 20 }).replace(/<\/?svg[^>]*>/g, "")}
   </g>
-  <text x="80" y="330" font-family="Archivo" font-size="150" font-weight="800" letter-spacing="-6" fill="${TINTA}">1.787,01 €</text>
-  <text x="80" y="392" font-family="IBM Plex Mono" font-size="24" letter-spacing="3" fill="#6E6E68">LO QUE TE QUEDA ESTE MES</text>
-  <rect x="80" y="440" width="1040" height="2" fill="#E2E2DC"/>
+  <text x="176" y="112" font-family="Archivo" font-size="34" font-weight="700" fill="${PAPEL}">Neto</text>
+
+  <rect x="80" y="180" width="1040" height="290" rx="34" fill="url(#tarjeta)"/>
+  <text x="128" y="252" font-family="Archivo" font-size="26" font-weight="600" fill="rgba(255,255,255,0.8)">Te queda este mes</text>
+  <text x="128" y="368" font-family="Archivo" font-size="112" font-weight="800" letter-spacing="-4" fill="#FFFFFF">1.787,01 €</text>
+  <text x="128" y="418" font-family="Archivo" font-size="26" fill="rgba(255,255,255,0.8)">De 1.800,00 € cobrados, ya sin fijos ni suscripciones</text>
+
   ${[
-    ["INGRESOS", "1.800,00"],
-    ["FIJOS", "−780,00"],
-    ["SUSCRIPCIONES", "−12,99"],
+    ["Ingresos", "1.800,00 €"],
+    ["Fijos", "−780,00 €"],
+    ["Suscripciones", "−12,99 €"],
   ]
     .map(
       ([k, v], i) => `
-  <text x="${80 + i * 350}" y="490" font-family="IBM Plex Mono" font-size="19" letter-spacing="2" fill="#6E6E68">${k}</text>
-  <text x="${80 + i * 350}" y="530" font-family="IBM Plex Mono" font-size="30" fill="${TINTA}">${v}</text>`,
+  <text x="${128 + i * 330}" y="530" font-family="Archivo" font-size="24" fill="#9AA1AE">${k}</text>
+  <text x="${128 + i * 330}" y="572" font-family="Archivo" font-size="34" font-weight="700" fill="${PAPEL}">${v}</text>`,
     )
     .join("")}
-  <text x="80" y="596" font-family="IBM Plex Mono" font-size="20" letter-spacing="3" fill="#6E6E68">NETO · JAVISTUDIO</text>
 </svg>`;
 
 png(og, 1200, "public/og.png");

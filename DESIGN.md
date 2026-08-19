@@ -4,79 +4,78 @@
 
 ## World
 
-**Espécimen tipográfico.** La pantalla es una hoja de papel casi blanca donde manda un
-solo número: lo que queda este mes, a tamaño de titular. Todo lo demás es letra de
-máquina diminuta. La jerarquía se hace **solo con escala**, no con cajas, sombras ni
-colores de fondo. Nada flota: lo único que separa unas cosas de otras son filetes de 1px
-y aire.
+**Banca moderna, la convención ejecutada en serio.** Fondo oscuro (o claro, según el
+móvil), tarjetas redondeadas y elevadas, un saldo enorme arriba, una fila de botones
+redondos para las acciones y listas de movimientos con su círculo de color a la
+izquierda. Es el lenguaje de Revolut y no se disimula: se ejecuta a su nivel.
 
-El origen es el espécimen de una fundición tipográfica: una letra gigantesca, una rejilla
-de datos debajo y las etiquetas técnicas en monoespaciada. Encaja con el producto porque
-el trabajo del usuario es leer una cifra de un vistazo, con una mano, a menudo a plena
-luz de la calle.
+Elegido por Javi el 19/08/2026 **después** de ver funcionando la dirección anterior (un
+espécimen tipográfico sobre papel). Aquella queda como anti-referencia: no vuelve el
+papel, ni los filetes de 1px, ni la monoespaciada, ni las cifras sobre fondo blanco.
+Mezclar los dos mundos sería lo peor de ambos.
 
-Elegido por Javi el 19/08/2026 frente a otras tres direcciones. Sustituye al mundo
-anterior (verde azulado con serif Fraunces y tarjetas con sombra), que queda como
-anti-referencia: **ninguna tarjeta vuelve**.
+El listón es Revolut: si un detalle se ve peor que allí, está mal.
 
 ## Name
 
-**Neto.** Lo que queda una vez descontado todo. Sustituye a «Money» por decisión de Javi.
+**Neto.**
 
 ## Palette
 
-| Token | Valor | Uso |
-|---|---|---|
-| `--paper` | `#FAFAF8` | Fondo de la hoja |
-| `--surface` | `#FFFFFF` | Campos y superficies que reciben escritura |
-| `--ink` | `#101010` | Texto principal y cifras |
-| `--muted` | `#6E6E68` | Etiquetas y texto secundario (4.8:1 sobre papel) |
-| `--rule` | `#E2E2DC` | Filetes de 1px |
-| `--accent` | `#0033FF` | Azul de fundición: foco, mes activo, acción principal |
-| `--negative` | `#D50000` | Solo cifras en rojo |
+Dos temas de primera clase, elegidos por `prefers-color-scheme`. Los tokens son los
+mismos; cambia lo que valen.
 
-El azul no decora: marca dónde estás y qué acción es la principal. Nunca se usa como
-fondo de bloques grandes ni como degradado.
+| Token | Oscuro | Claro | Uso |
+|---|---|---|---|
+| `--bg` | `#0B0C0F` | `#F4F5F7` | Fondo de la app |
+| `--card` | `#16181D` | `#FFFFFF` | Tarjetas |
+| `--card-2` | `#1F222A` | `#EFF1F4` | Campos y superficies dentro de una tarjeta |
+| `--ink` | `#FFFFFF` | `#0B0C0F` | Texto principal y cifras |
+| `--muted` | `#9AA1AE` | `#606775` | Texto secundario (≥4.5:1 sobre su tarjeta) |
+| `--line` | `#252932` | `#E3E6EB` | Separadores dentro de una tarjeta |
+| `--accent` | `#7B61FF` | `#6B4EFF` | Acción principal, foco, activo |
+| `--accent-2` | `#3E7BFA` | `#3E7BFA` | Segundo color del degradado |
+| `--income` | `#2ED47A` | `#12A05C` | Dinero que entra |
+| `--negative` | `#FF5C5C` | `#D93636` | Saldo en rojo |
 
-Solo modo claro, y es una decisión: se usa en la calle, de día, con el móvil en una mano;
-el contraste alto gana al ambiente. Un modo oscuro llegaría como sistema completo, no
-como inversión de colores.
+El degradado (`--accent` → `--accent-2`, 135°) se usa en la tarjeta del saldo y en el
+botón principal. En ningún caso sobre texto.
 
 ## Type
 
-- **Archivo** (variable 400–900), servida desde el propio dominio. Titulares, cifra
-  principal e interfaz. Carácter ancho y estable a tamaños enormes.
-- **IBM Plex Mono** (400/500), servida desde el propio dominio. Etiquetas, fechas,
-  códigos e **importes de las filas**: es monoespaciada porque son medidas, no porque
-  quede «técnico».
-- Escala: cifra del mes hasta 6rem con `-0.035em`; etiquetas mono a 0.72rem con
-  `0.08em` y caja alta; texto corriente 1rem.
-- Todas las cifras con `font-variant-numeric: tabular-nums`, para que las columnas de
-  importes cuadren y no bailen al cambiar de mes.
+**Archivo** (variable 400–900), servida desde el propio dominio. Una sola familia:
+titulares, cifras e interfaz. Tracking apretado en los tamaños grandes (`-0.03em`), y
+`tabular-nums` en todo lo que sea dinero.
+
+Sin monoespaciada: era el recurso del mundo anterior y aquí no pinta nada.
 
 ## Composition
 
-- Una columna en el móvil; en pantalla ancha, la hoja se reparte en dos con la cifra y el
-  resumen a la izquierda y el formulario a la derecha. Ancho máximo de lectura contenido.
-- Los bloques se separan por aire y por filetes horizontales. **Sin tarjetas, sin
-  sombras, sin esquinas redondeadas grandes.**
-- Las filas de importes son pares etiqueta/cifra con la cifra alineada a la derecha.
-- Nada de rótulos por encima de un titular: el titular se explica solo, y la frase que lo
-  aclara va debajo y en voz baja.
+- **Tarjetas** con `border-radius: 20px` (16px en piezas pequeñas), sin borde en oscuro y
+  con sombra suave en claro. Nunca una tarjeta dentro de otra.
+- **Saldo** arriba del todo, sobre la tarjeta con degradado: cifra a 3–3.5rem, y debajo,
+  en voz baja, de qué mes es y de cuánto se descuenta.
+- **Fila de acciones**: círculos de 3.5rem con icono y su etiqueta debajo, como los
+  «Añadir dinero / Enviar / Cambiar» de cualquier banco.
+- **Filas de movimiento**: círculo de 2.6rem con la inicial del concepto sobre un color
+  estable derivado del propio texto, título, subtítulo en gris e importe a la derecha.
+- Ancho de contenido máximo 560px: la app se diseña como una columna de móvil y en
+  escritorio se queda centrada, como hacen las apps de banco.
 
 ## Motion
 
-Un solo momento con autoría: al cambiar de mes, la cifra entra desplazada y se asienta
-(180 ms, `cubic-bezier(0.16, 1, 0.3, 1)`), en la dirección del mes al que vas. El resto
-de la interfaz no se mueve. Con `prefers-reduced-motion` no hay desplazamiento.
+Entradas cortas y suaves, nunca rebotes: 200 ms con `cubic-bezier(0.2, 0.8, 0.2, 1)`.
+La cifra del saldo se asienta al cambiar de mes; las tarjetas no se mueven. Los botones
+redondos bajan un 4% al pulsarlos. Todo se desactiva con `prefers-reduced-motion`.
 
 ## Browser surfaces
 
-Selección de texto, cursor de escritura, anillo de foco, barras de desplazamiento y
-subrayados se tiñen de la paleta. Ninguna superficie del navegador se queda con el gris
-de fábrica.
+Selección, cursor, foco y barras de desplazamiento se tiñen del acento en ambos temas.
+`color-scheme` declarado para que los controles nativos (fechas, desplegables) salgan del
+color correcto y no en blanco sobre oscuro.
 
 ## Iconography
 
-Marca y símbolos dibujados a mano en SVG, con el mismo grosor y radios. Tres barras que
-menguan: lo que entra, lo que sale y lo que queda.
+La marca se queda: tres barras que menguan. Cambia la piel — la barra que queda pasa a
+llevar el degradado de la app. Los iconos de interfaz siguen dibujados a mano en SVG con
+el mismo grosor.
