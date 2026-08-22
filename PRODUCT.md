@@ -56,20 +56,25 @@ Funciona hoy:
 - Editar y borrar movimientos; sacar dinero de un bote.
 - Apartado «mes a mes» con lo ahorrado y lo que sobró en cada mes.
 - Cuentas con registro abierto; los correos no se ven entre usuarios.
+- Tope por categoría: se pone un máximo al mes y se ve lo que queda.
+- Abre sin cobertura y enseña lo último que vio, avisando de que no hay red.
 
 Restricciones técnicas:
 
 - React 19 + Vite + TypeScript, sin librería de componentes ni de estilos.
-- Datos en PocketBase propio (`api-money.javistudio.dev`), en la VPS.
+- Datos en PocketBase propio (`api-neto.javistudio.dev`), en la VPS.
 - El frontend es estático: build en GitHub Actions y `rsync` a la VPS.
-- Sin conexión la app aún no arranca (pendiente).
+- Sin conexión se lee, pero no se apunta: no hay cola de escrituras (pendiente).
 
 ## Brand Commitments
 
-- **El nombre actual, «Money», se sustituye**: decisión de Javi (19/08/2026). Es
-  genérico y no es defendible como marca.
-- El dominio actual es `money.javistudio.dev`; con nombre nuevo se monta el subdominio
-  que corresponda (hay DNS comodín y certificados automáticos, así que no es un freno).
+- **El producto se llama «Neto»** desde el 19/08/2026. El nombre anterior, «Money», se
+  descartó por decisión de Javi: genérico y no defendible como marca.
+- El dominio es `neto.javistudio.dev` (API en `api-neto.javistudio.dev`).
+  `money.javistudio.dev` se retiró sin redirección, también por decisión suya. Por dentro
+  quedan restos del nombre viejo que no se tocan a propósito: el backend vive en
+  `/opt/money-api` y las claves de `localStorage` siguen siendo `moneymanager.*`, porque
+  renombrarlas borraría la caché y la migración de quien ya tiene datos.
 - **JaviStudio** es el estudio y se mantiene como firma; el producto es suyo pero tiene
   nombre propio.
 - El listón: que no parezca un proyecto de fin de semana. Tiene que aguantar que se
