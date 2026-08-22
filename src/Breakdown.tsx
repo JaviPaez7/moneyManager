@@ -1,22 +1,14 @@
 import { formatEUR, formatOut } from "./lib/format";
 import type { MonthBreakdown } from "./lib/summary";
 
-/** La portada del mes: el número grande y de dónde sale. */
-export default function Ledger({ month, mes }: { month: string; mes: MonthBreakdown }) {
+/**
+ * El recibo del mes: de dónde sale «lo que queda». Enseña la resta, no solo el
+ * resultado, para poder auditar el número en vez de fiarse. Va debajo del
+ * formulario: primero apuntas, luego, si quieres, miras la cuenta entera.
+ */
+export default function Breakdown({ mes }: { mes: MonthBreakdown }) {
   return (
-    <section className="ledger" aria-label="Resumen del mes">
-      <div className="balance">
-        <p className="balance-label">Te queda este mes</p>
-        <p key={month} className={`ledger-hero enter ${mes.afterFixed >= 0 ? "pos" : "neg"}`}>
-          {formatEUR(mes.afterFixed)}
-        </p>
-        <p className="ledger-sub">
-          {mes.income > 0
-            ? `De ${formatEUR(mes.income)} cobrados, ya sin fijos ni suscripciones`
-            : "Apunta lo que cobras y aquí verás lo que te queda"}
-        </p>
-      </div>
-
+    <section className="breakdown" aria-label="Desglose del mes">
       <ul className="ledger-rows">
         <li>
           <span>Ingresos</span>

@@ -1,5 +1,6 @@
-import { type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 import { classifySection, classifyVariableCategory, shouldRepeat } from "./lib/classify";
+import { parseAmount } from "./lib/format";
 import type { ComposerState } from "./lib/useComposer";
 import type { EntryDraft, Kind, SavingPot } from "./lib/types";
 import { VARIABLE_CATS } from "./lib/types";
@@ -16,6 +17,7 @@ export default function Composer({
   onSubmit: (form: EntryDraft) => Promise<{ potId: string } | null>;
 }) {
   const { form, patch, reset, potOpen, setPotOpen } = composer;
+  const [importeMal, setImporteMal] = useState(false);
 
   // Lo que se escribe decide la sección y la categoría: "Netflix" es una
   // suscripción y se repetirá sola, "Mercadona" es comida y no.
@@ -40,8 +42,17 @@ export default function Composer({
 
   async function submit(e: FormEvent) {
     e.preventDefault();
+    // Un importe que no vale (vacío, cero, letras) hacía que Guardar no
+    // hiciera nada y no dijera nada. Ahora lo dice justo debajo del campo.
+    if (parseAmount(form.amount) == null) {
+      setImporteMal(true);
+      return;
+    }
     const hecho = await onSubmit(form);
-    if (hecho) reset(hecho.potId);
+    if (hecho) {
+      setImporteMal(false);
+      reset(hecho.potId);
+    }
   }
 
   return (
@@ -90,9 +101,14 @@ export default function Composer({
             inputMode="decimal"
             placeholder="0,00"
             value={form.amount}
-            onChange={(e) => patch({ amount: e.target.value })}
+            onChange={(e) => {
+              if (importeMal) setImporteMal(false);
+              patch({ amount: e.target.value });
+            }}
+            aria-invalid={importeMal}
             required
           />
+          {importeMal && <span className="field-error">Pon un importe mayor que cero.</span>}
         </label>
         <label>
           Fecha

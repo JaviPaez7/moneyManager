@@ -15,7 +15,7 @@ import {
   updateTx,
 } from "./api";
 import { currentMonth, parseAmount, today } from "./format";
-import type { Book, EntryDraft, Section, Store, Tx } from "./types";
+import type { Book, EntryDraft, Recurring, Section, Store, Tx } from "./types";
 import { KIND_SECTION, SECTION_LABEL } from "./types";
 
 /**
@@ -179,6 +179,33 @@ export function useBookActions({
     });
   }
 
+  /**
+   * Confirma en el servidor un borrado que la pantalla ya quitó (borrado
+   * diferido con deshacer). No toca el estado local salvo para reponer la fila
+   * si el servidor falla. El mes que se salta es el del propio movimiento, no
+   * el que se esté mirando, por si acaso no coinciden.
+   */
+  async function commitRemoveTx(tx: Tx, rule?: Recurring) {
+    try {
+      await deleteTx(tx.id);
+      if (rule) {
+        const skipMonth = tx.date.slice(0, 7);
+        const updated = await updateRecurring(rule.id, {
+          skippedMonths: [...new Set([...rule.skippedMonths, skipMonth])],
+        });
+        setStore((prev) => ({
+          ...prev,
+          recurrings: prev.recurrings.map((r) => (r.id === updated.id ? updated : r)),
+        }));
+      }
+    } catch (err) {
+      setError(friendlyError(err));
+      setStore((prev) =>
+        prev.txs.some((r) => r.id === tx.id) ? prev : { ...prev, txs: [tx, ...prev.txs] },
+      );
+    }
+  }
+
   async function stopRecurring(ruleId: string) {
     return run(async () => {
       const updated = await updateRecurring(ruleId, { active: false });
@@ -279,6 +306,7 @@ export function useBookActions({
     defaultDate,
     addEntry,
     removeTx,
+    commitRemoveTx,
     saveEdit,
     stopRecurring,
     potCreate,

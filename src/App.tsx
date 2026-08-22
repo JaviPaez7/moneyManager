@@ -1,23 +1,26 @@
 import { useEffect, useMemo, useState } from "react";
 import "./App.css";
+import Balance from "./Balance";
 import BookBar from "./BookBar";
+import Breakdown from "./Breakdown";
 import Budgets from "./Budgets";
 import Composer from "./Composer";
 import History from "./History";
-import Ledger from "./Ledger";
 import Login from "./Login";
 import Movements from "./Movements";
 import Password from "./Password";
 import Pots from "./Pots";
 import SectionList, { type SectionSpec } from "./SectionList";
+import Snack from "./Snack";
 import TopBar from "./TopBar";
 import { createBook, friendlyError, joinBook, listBooks } from "./lib/api";
-import { currentMonth } from "./lib/format";
+import { currentMonth, formatEUR } from "./lib/format";
 import { dismissLocalStore, pendingLocalStore, uploadLocalStore } from "./lib/migrate";
 import { currentUser, pb, type AuthUser } from "./lib/pb";
 import { monthBreakdown } from "./lib/summary";
 import { useComposer } from "./lib/useComposer";
-import type { Book } from "./lib/types";
+import { useSnack } from "./lib/useSnack";
+import type { Book, Tx } from "./lib/types";
 import { useBookActions } from "./lib/useBookActions";
 import { useBookStore } from "./lib/useBookStore";
 
@@ -71,6 +74,21 @@ function Money({ user }: { user: AuthUser }) {
   const { store, setStore, loading, error, setError } = useBookStore(bookId || null, month);
   const acciones = useBookActions({ bookId, month, store, setStore, setError });
   const composer = useComposer(month);
+  const snacks = useSnack();
+
+  // Borrar con red debajo: la fila desaparece al momento, pero el borrado no
+  // llega al servidor hasta que la cinta caduca. "Deshacer" solo tiene que
+  // reponerla en local, porque en el servidor aún no ha pasado nada.
+  function borrarMovimiento(tx: Tx) {
+    const rule = store.recurrings.find((r) => r.id === tx.recurringId);
+    setStore((prev) => ({ ...prev, txs: prev.txs.filter((r) => r.id !== tx.id) }));
+    snacks.queue({
+      msg: `Borrado · ${tx.note || tx.category}`,
+      actionLabel: "Deshacer",
+      onUndo: () => setStore((prev) => ({ ...prev, txs: [tx, ...prev.txs] })),
+      onCommit: () => acciones.commitRemoveTx(tx, rule),
+    });
+  }
 
   // Al entrar: los libros a los que tengo acceso. Si no hay ninguno, el
   // personal se crea solo para no recibir a nadie con una pantalla vacía.
@@ -140,6 +158,16 @@ function Money({ user }: { user: AuthUser }) {
   }
 
   const activeRecurring = store.recurrings.filter((rule) => rule.active).map((rule) => rule.id);
+
+  // Un libro recién nacido no tiene nada: ni movimientos, ni fijos, ni botes,
+  // ni topes. En ese caso la pantalla se reduce al saldo y al formulario, sin
+  // la pila de tarjetas vacías. Un mes vacío de un libro con historia sí
+  // enseña sus secciones: ahí el "aún no hay nada este mes" sí dice algo.
+  const libroNuevo =
+    store.txs.length === 0 &&
+    store.recurrings.length === 0 &&
+    store.pots.length === 0 &&
+    store.budgets.length === 0;
 
   const secciones: SectionSpec[] = [
     {
@@ -250,73 +278,97 @@ function Money({ user }: { user: AuthUser }) {
       ) : (
         <>
           <div className="stage">
-            <Ledger month={month} mes={mes} />
+            <Balance month={month} mes={mes} />
             <Composer
               composer={composer}
               pots={store.pots}
               busy={acciones.busy}
-              onSubmit={acciones.addEntry}
+              onSubmit={async (form) => {
+                const hecho = await acciones.addEntry(form);
+                // Guardar ya no se queda mudo: se confirma dónde está la vista.
+                if (hecho) {
+                  snacks.queue({
+                    msg: `Guardado · ${hecho.tx.note || hecho.tx.category} · ${formatEUR(hecho.tx.amount)}`,
+                  });
+                }
+                return hecho;
+              }}
             />
           </div>
 
-          <div className="sections">
-            {secciones.map((seccion) => (
-              <SectionList
-                key={seccion.title}
-                {...seccion}
+          {libroNuevo ? (
+            <section className="first-run">
+              <p>
+                Apunta tu primer ingreso o gasto aquí arriba. Los fijos y las suscripciones se
+                quedan solos para los próximos meses, así que el mes que viene empieza casi escrito.
+              </p>
+            </section>
+          ) : (
+            <>
+              <Breakdown mes={mes} />
+
+              <div className="sections">
+                {secciones.map((seccion) => (
+                  <SectionList
+                    key={seccion.title}
+                    {...seccion}
+                    activeRecurring={activeRecurring}
+                    shared={shared}
+                    onRemove={borrarMovimiento}
+                    onStop={acciones.stopRecurring}
+                  />
+                ))}
+              </div>
+
+              <Budgets
+                budgets={store.budgets}
+                txs={store.txs}
+                month={month}
+                busy={acciones.busy}
+                onSet={acciones.setCap}
+                onRemove={acciones.removeCap}
+              />
+
+              <History txs={store.txs} onPickMonth={setMonth} />
+
+              <Pots
+                pots={store.pots}
+                txs={store.txs}
+                savingTotal={mes.savingTotal}
+                busy={acciones.busy}
+                onCreate={async (name, target) => {
+                  const pot = await acciones.potCreate(name, target);
+                  // El bote recién creado queda elegido en el formulario: quien
+                  // lo crea es porque va a meterle algo ahora mismo.
+                  if (pot) composer.patch({ potId: pot.id, kind: "saving", section: "ahorro" });
+                }}
+                onWithdraw={acciones.potWithdraw}
+                onRename={acciones.potRename}
+                onDelete={acciones.potDelete}
+                onError={setError}
+              />
+
+              <Movements
+                month={month}
+                rows={mes.txs}
+                spent={mes.spent}
+                recurrings={store.recurrings}
                 activeRecurring={activeRecurring}
+                pots={store.pots}
                 shared={shared}
-                onRemove={acciones.removeTx}
+                busy={acciones.busy}
+                editando={editando}
+                onEdit={setEditando}
+                onSave={acciones.saveEdit}
+                onRemove={borrarMovimiento}
                 onStop={acciones.stopRecurring}
               />
-            ))}
-          </div>
-
-          <Budgets
-            budgets={store.budgets}
-            txs={store.txs}
-            month={month}
-            busy={acciones.busy}
-            onSet={acciones.setCap}
-            onRemove={acciones.removeCap}
-          />
-
-          <History txs={store.txs} onPickMonth={setMonth} />
-
-          <Pots
-            pots={store.pots}
-            txs={store.txs}
-            savingTotal={mes.savingTotal}
-            busy={acciones.busy}
-            onCreate={async (name, target) => {
-              const pot = await acciones.potCreate(name, target);
-              // El bote recién creado queda elegido en el formulario: quien lo
-              // crea es porque va a meterle algo ahora mismo.
-              if (pot) composer.patch({ potId: pot.id, kind: "saving", section: "ahorro" });
-            }}
-            onWithdraw={acciones.potWithdraw}
-            onRename={acciones.potRename}
-            onDelete={acciones.potDelete}
-            onError={setError}
-          />
-
-          <Movements
-            month={month}
-            rows={mes.txs}
-            spent={mes.spent}
-            recurrings={store.recurrings}
-            activeRecurring={activeRecurring}
-            pots={store.pots}
-            shared={shared}
-            busy={acciones.busy}
-            editando={editando}
-            onEdit={setEditando}
-            onSave={acciones.saveEdit}
-            onRemove={acciones.removeTx}
-            onStop={acciones.stopRecurring}
-          />
+            </>
+          )}
         </>
       )}
+
+      <Snack snack={snacks.snack} onUndo={snacks.undo} onClose={snacks.flush} />
 
       <footer>
         <p>Neto · JaviStudio</p>
