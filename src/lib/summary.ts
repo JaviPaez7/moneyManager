@@ -123,3 +123,67 @@ export function budgetRows(budgets: Budget[], txs: Tx[], month: string): BudgetR
     })
     .sort((a, b) => b.ratio - a.ratio);
 }
+
+export type MonthBreakdown = {
+  /** Los movimientos del mes, del más reciente al más antiguo. */
+  txs: Tx[];
+  incomes: Tx[];
+  fijos: Tx[];
+  subs: Tx[];
+  variables: Tx[];
+  savings: Tx[];
+  income: number;
+  fijoTotal: number;
+  subTotal: number;
+  variableTotal: number;
+  /** Lo apartado menos lo sacado de los botes. Puede ser negativo. */
+  savingTotal: number;
+  /** Lo que queda tras los fijos y las suscripciones: el número de portada. */
+  afterFixed: number;
+  /** Lo que queda de verdad, ya con las variables y el ahorro descontados. */
+  leftover: number;
+  /** Todo lo gastado, sin contar el ahorro. */
+  spent: number;
+};
+
+/**
+ * Un mes desmenuzado: las listas por sección y los totales que se enseñan en
+ * la portada. Está aquí y no en la pantalla porque es aritmética pura y
+ * conviene poder comprobarla sin montar React.
+ */
+export function monthBreakdown(txs: Tx[], month: string): MonthBreakdown {
+  const delMes = txs
+    .filter((t) => t.date.startsWith(month))
+    .sort((a, b) => b.date.localeCompare(a.date));
+
+  const incomes = delMes.filter((t) => t.kind === "income");
+  const fijos = delMes.filter((t) => t.kind === "expense" && t.section === "fijo");
+  const subs = delMes.filter((t) => t.kind === "expense" && t.section === "suscripcion");
+  const variables = delMes.filter((t) => t.kind === "expense" && t.section === "variable");
+  const savings = delMes.filter((t) => t.kind === "saving");
+
+  const suma = (rows: Tx[]) => rows.reduce((s, t) => s + t.amount, 0);
+  const income = suma(incomes);
+  const fijoTotal = suma(fijos);
+  const subTotal = suma(subs);
+  const variableTotal = suma(variables);
+  const savingTotal = savings.reduce((s, t) => s + (t.out ? -t.amount : t.amount), 0);
+  const afterFixed = income - fijoTotal - subTotal;
+
+  return {
+    txs: delMes,
+    incomes,
+    fijos,
+    subs,
+    variables,
+    savings,
+    income,
+    fijoTotal,
+    subTotal,
+    variableTotal,
+    savingTotal,
+    afterFixed,
+    leftover: afterFixed - variableTotal - savingTotal,
+    spent: fijoTotal + subTotal + variableTotal,
+  };
+}

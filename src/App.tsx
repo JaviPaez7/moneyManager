@@ -1,68 +1,27 @@
-import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState } from "react";
 import "./App.css";
 import BookBar from "./BookBar";
-import History from "./History";
 import Budgets from "./Budgets";
-import EditTx from "./EditTx";
+import Composer from "./Composer";
+import History from "./History";
+import Ledger from "./Ledger";
 import Login from "./Login";
+import Movements from "./Movements";
 import Password from "./Password";
-import { IconArrowOut, IconChevron, IconClose, IconPencil, IconPlus, IconRepeat, IconTrash } from "./icons";
-import {
-  createBook,
-  createPot,
-  createRecurring,
-  deleteBudget,
-  createTx,
-  deleteBook,
-  deletePot,
-  deleteTx,
-  friendlyError,
-  joinBook,
-  listBooks,
-  setBudget,
-  updatePot,
-  updateRecurring,
-  updateTx,
-} from "./lib/api";
-import { classifySection, classifyVariableCategory, shouldRepeat } from "./lib/classify";
-import {
-  currentMonth,
-  formatEUR,
-  formatOut,
-  moneyDate,
-  monthLabel,
-  parseAmount,
-  shiftMonth,
-  today,
-} from "./lib/format";
+import Pots from "./Pots";
+import SectionList, { type SectionSpec } from "./SectionList";
+import TopBar from "./TopBar";
+import { createBook, friendlyError, joinBook, listBooks } from "./lib/api";
+import { currentMonth } from "./lib/format";
 import { dismissLocalStore, pendingLocalStore, uploadLocalStore } from "./lib/migrate";
 import { currentUser, pb, type AuthUser } from "./lib/pb";
-import { colorDe, inicial } from "./lib/avatar";
-import { potTotals } from "./lib/summary";
-import type { Book, Kind, Section, Tx } from "./lib/types";
-import { KIND_SECTION, SECTION_LABEL, VARIABLE_CATS } from "./lib/types";
+import { monthBreakdown } from "./lib/summary";
+import { useComposer } from "./lib/useComposer";
+import type { Book } from "./lib/types";
+import { useBookActions } from "./lib/useBookActions";
 import { useBookStore } from "./lib/useBookStore";
 
-type FormKind = Kind;
-
 const BOOK_KEY = "moneymanager.libro";
-
-const emptyForm = {
-  kind: "expense" as FormKind,
-  amount: "",
-  note: "",
-  date: today(),
-  section: "variable" as Section,
-  category: "Otros",
-  repeat: false,
-  potId: "",
-  newPotName: "",
-  newPotTarget: "",
-};
-
-function sum(rows: Tx[]) {
-  return rows.reduce((s, t) => s + t.amount, 0);
-}
 
 export default function App() {
   const [user, setUser] = useState<AuthUser | null>(currentUser);
@@ -94,22 +53,24 @@ export default function App() {
   return <Money user={user} />;
 }
 
+/**
+ * La pantalla de dentro. Aquí solo vive lo que comparten varias secciones —qué
+ * libro y qué mes se están mirando— y el reparto entre ellas; el estado de cada
+ * trozo (el formulario, los botes, la edición) se queda en su componente.
+ */
 function Money({ user }: { user: AuthUser }) {
   const [books, setBooks] = useState<Book[]>([]);
   const [bookId, setBookId] = useState(() => localStorage.getItem(BOOK_KEY) || "");
   const [booting, setBooting] = useState(true);
   const [month, setMonth] = useState(currentMonth);
-  const [form, setForm] = useState(emptyForm);
-  const [potOpen, setPotOpen] = useState(false);
-  const [busy, setBusy] = useState(false);
   const [legacy, setLegacy] = useState(pendingLocalStore);
   const [pwOpen, setPwOpen] = useState(false);
   const [editando, setEditando] = useState<string | null>(null);
-  const [sacandoDe, setSacandoDe] = useState<string | null>(null);
-  const [renombrando, setRenombrando] = useState<string | null>(null);
   const [sinRed, setSinRed] = useState(() => !navigator.onLine);
 
   const { store, setStore, loading, error, setError } = useBookStore(bookId || null, month);
+  const acciones = useBookActions({ bookId, month, store, setStore, setError });
+  const composer = useComposer(month);
 
   // Al entrar: los libros a los que tengo acceso. Si no hay ninguno, el
   // personal se crea solo para no recibir a nadie con una pantalla vacía.
@@ -149,312 +110,25 @@ function Money({ user }: { user: AuthUser }) {
     };
   }, []);
 
-  useEffect(() => {
-    setForm((prev) => {
-      if (prev.date.startsWith(month)) return prev;
-      const day = month === currentMonth() ? today().slice(8) : "01";
-      return { ...prev, date: `${month}-${day}` };
-    });
-  }, [month]);
-
-  const run = useCallback(
-    async <T,>(fn: () => Promise<T>): Promise<T | null> => {
-      setBusy(true);
-      setError(null);
-      try {
-        return await fn();
-      } catch (err) {
-        setError(friendlyError(err));
-        return null;
-      } finally {
-        setBusy(false);
-      }
-    },
-    [setError],
-  );
-
-  const monthTxs = useMemo(
-    () =>
-      store.txs
-        .filter((t) => t.date.startsWith(month))
-        .sort((a, b) => b.date.localeCompare(a.date)),
-    [store.txs, month],
-  );
-
-  const incomes = monthTxs.filter((t) => t.kind === "income");
-  const fijos = monthTxs.filter((t) => t.kind === "expense" && t.section === "fijo");
-  const subs = monthTxs.filter((t) => t.kind === "expense" && t.section === "suscripcion");
-  const variables = monthTxs.filter((t) => t.kind === "expense" && t.section === "variable");
-  const savings = monthTxs.filter((t) => t.kind === "saving");
-
-  const income = sum(incomes);
-  const fijoTotal = sum(fijos);
-  const subTotal = sum(subs);
-  const variableTotal = sum(variables);
-  const savingTotal = savings.reduce((s, t) => s + (t.out ? -t.amount : t.amount), 0);
-  const afterFixed = income - fijoTotal - subTotal;
-  const leftover = afterFixed - variableTotal - savingTotal;
-  const spent = fijoTotal + subTotal + variableTotal;
-
-  const pots = useMemo(() => potTotals(store.txs), [store.txs]);
+  const mes = useMemo(() => monthBreakdown(store.txs, month), [store.txs, month]);
   const book = books.find((b) => b.id === bookId);
   const shared = (book?.memberIds.length || 0) > 1;
 
-  function patchForm(partial: Partial<typeof emptyForm>) {
-    setForm((prev) => ({ ...prev, ...partial }));
-  }
-
-  function onNote(note: string) {
-    if (form.kind === "expense") {
-      const section = classifySection(note, form.category);
-      const category = section === "variable" ? classifyVariableCategory(note) : form.category;
-      patchForm({ note, section, category, repeat: shouldRepeat(section, "expense") });
-      return;
-    }
-    patchForm({ note });
-  }
-
-  function onKind(kind: FormKind) {
-    patchForm({
-      kind,
-      section: kind === "saving" ? "ahorro" : "variable",
-      repeat: kind === "income",
-      category: kind === "expense" ? "Otros" : "Nómina",
-    });
-  }
-
-  async function submit(e: FormEvent) {
-    e.preventDefault();
-    if (!bookId) return;
-    const amount = parseAmount(form.amount);
-    if (amount == null) return;
-
-    await run(async () => {
-      let potId = form.potId || undefined;
-      if (form.kind === "saving") {
-        const newName = form.newPotName.trim();
-        if (newName) {
-          const pot = await createPot(bookId, newName, parseAmount(form.newPotTarget) || 0);
-          potId = pot.id;
-          setStore((prev) => ({ ...prev, pots: [...prev.pots, pot] }));
-        }
-        if (!potId) return null;
-      }
-
-      const section: Section =
-        form.kind === "saving"
-          ? "ahorro"
-          : form.kind === "income"
-            ? KIND_SECTION.income
-            : form.section;
-      const note = form.note.trim() || (form.kind === "income" ? "Ingreso" : SECTION_LABEL[section]);
-      const category = form.kind === "expense" && section === "variable" ? form.category : note;
-
-      let recurringId: string | undefined;
-      if (form.repeat && form.kind !== "saving") {
-        const rule = await createRecurring(bookId, {
-          kind: form.kind,
-          section,
-          name: note,
-          amount,
-          day: Number(form.date.slice(8, 10)),
-          startMonth: form.date.slice(0, 7),
-          active: true,
-          skippedMonths: [],
-          potId,
-        });
-        recurringId = rule.id;
-        setStore((prev) => ({ ...prev, recurrings: [rule, ...prev.recurrings] }));
-      }
-
-      const tx = await createTx(bookId, {
-        kind: form.kind,
-        amount,
-        section,
-        category,
-        note,
-        date: form.date,
-        recurringId,
-        potId,
-      });
-      setStore((prev) => ({ ...prev, txs: [tx, ...prev.txs] }));
-
-      setForm({
-        ...emptyForm,
-        kind: form.kind,
-        section: form.kind === "expense" ? "variable" : form.section,
-        date: form.date.startsWith(month) ? form.date : `${month}-01`,
-        potId: potId || "",
-      });
-      setPotOpen(false);
-      return tx;
-    });
-  }
-
-  async function removeTx(tx: Tx) {
-    await run(async () => {
-      await deleteTx(tx.id);
-      setStore((prev) => ({ ...prev, txs: prev.txs.filter((row) => row.id !== tx.id) }));
-      // Si venía de un recurrente, marcamos el mes como saltado: si no, al
-      // volver a abrir el mes se volvería a crear solo.
-      const rule = store.recurrings.find((r) => r.id === tx.recurringId);
-      if (rule) {
-        const updated = await updateRecurring(rule.id, {
-          skippedMonths: [...new Set([...rule.skippedMonths, month])],
-        });
-        setStore((prev) => ({
-          ...prev,
-          recurrings: prev.recurrings.map((r) => (r.id === updated.id ? updated : r)),
-        }));
-      }
-      return true;
-    });
-  }
-
-  async function guardarEdicion(tx: Tx, cambios: Partial<Tx>, tambienLosProximos: boolean) {
-    await run(async () => {
-      const actualizado = await updateTx(tx.id, {
-        note: cambios.note,
-        amount: cambios.amount,
-        date: cambios.date,
-        section: cambios.section,
-        category: cambios.category,
-        potId: cambios.potId,
-      });
-      setStore((prev) => ({
-        ...prev,
-        txs: prev.txs.map((row) => (row.id === actualizado.id ? actualizado : row)),
-      }));
-
-      // Al subir el alquiler no se cambia solo este mes: la regla que lo repite
-      // tiene que enterarse, o el mes que viene vuelve el importe viejo.
-      const rule = store.recurrings.find((r) => r.id === tx.recurringId);
-      if (rule && tambienLosProximos) {
-        const nueva = await updateRecurring(rule.id, {
-          amount: actualizado.amount,
-          name: actualizado.note,
-          section: actualizado.section,
-        });
-        setStore((prev) => ({
-          ...prev,
-          recurrings: prev.recurrings.map((r) => (r.id === nueva.id ? nueva : r)),
-        }));
-      }
-      setEditando(null);
-      return actualizado;
-    });
-  }
-
-  async function sacarDelBote(potId: string, importe: number, nota: string) {
-    if (!bookId) return;
-    await run(async () => {
-      const tx = await createTx(bookId, {
-        kind: "saving",
-        amount: importe,
-        section: "ahorro",
-        category: nota,
-        note: nota,
-        date: form.date.startsWith(month) ? form.date : `${month}-01`,
-        potId,
-        out: true,
-      });
-      setStore((prev) => ({ ...prev, txs: [tx, ...prev.txs] }));
-      setSacandoDe(null);
-      return tx;
-    });
-  }
-
-  async function renombrarBote(potId: string, name: string) {
-    await run(async () => {
-      const pot = await updatePot(potId, { name });
-      setStore((prev) => ({ ...prev, pots: prev.pots.map((p) => (p.id === pot.id ? pot : p)) }));
-      setRenombrando(null);
-      return pot;
-    });
-  }
-
-  async function borrarBote(potId: string) {
-    await run(async () => {
-      await deletePot(potId);
-      setStore((prev) => ({
-        ...prev,
-        pots: prev.pots.filter((p) => p.id !== potId),
-        // Los movimientos se quedan; solo pierden el bote al que apuntaban.
-        txs: prev.txs.map((t) => (t.potId === potId ? { ...t, potId: undefined } : t)),
-      }));
-      return true;
-    });
-  }
-
-  async function ponerTope(category: string, amount: number) {
-    if (!bookId) return;
-    await run(async () => {
-      const tope = await setBudget(bookId, category, amount, month, store.budgets);
-      setStore((prev) => ({
-        ...prev,
-        budgets: prev.budgets.some((b) => b.id === tope.id)
-          ? prev.budgets.map((b) => (b.id === tope.id ? tope : b))
-          : [...prev.budgets, tope],
-      }));
-      return tope;
-    });
-  }
-
-  async function quitarTope(budgetId: string) {
-    await run(async () => {
-      await deleteBudget(budgetId);
-      setStore((prev) => ({ ...prev, budgets: prev.budgets.filter((b) => b.id !== budgetId) }));
-      return true;
-    });
-  }
-
-  async function borrarLibro() {
-    if (!book) return;
-    await run(async () => {
-      await deleteBook(book.id);
-      let otros = books.filter((b) => b.id !== book.id);
-      // Sin ningún libro no hay dónde apuntar, así que se repone el personal.
-      if (otros.length === 0) otros = [await createBook("Mis cuentas")];
-      setBooks(otros);
-      setBookId(otros[0].id);
-      return true;
-    });
-  }
-
-  async function haltRecurring(ruleId: string) {
-    await run(async () => {
-      const updated = await updateRecurring(ruleId, { active: false });
-      setStore((prev) => ({
-        ...prev,
-        recurrings: prev.recurrings.map((r) => (r.id === updated.id ? updated : r)),
-      }));
-      return true;
-    });
-  }
-
-  async function newPot(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    if (!bookId) return;
-    const data = new FormData(e.currentTarget);
-    const name = String(data.get("name") || "").trim();
-    if (!name) return;
-    const target = parseAmount(String(data.get("target") || "")) || 0;
-    e.currentTarget.reset();
-    await run(async () => {
-      const pot = await createPot(bookId, name, target);
-      setStore((prev) => ({ ...prev, pots: [...prev.pots, pot] }));
-      patchForm({ potId: pot.id, kind: "saving", section: "ahorro" });
-      return pot;
-    });
-  }
-
-  async function uploadLegacy() {
+  async function subirLoViejo() {
     if (!legacy || !bookId) return;
-    const count = await run(() => uploadLocalStore(bookId, legacy));
+    const count = await acciones.run(() => uploadLocalStore(bookId, legacy));
     if (count != null) {
       setLegacy(null);
       window.location.reload();
     }
+  }
+
+  async function borrarLibro() {
+    if (!book) return;
+    const otros = await acciones.removeBook(book, books);
+    if (!otros) return;
+    setBooks(otros);
+    setBookId(otros[0].id);
   }
 
   if (booting) {
@@ -465,40 +139,39 @@ function Money({ user }: { user: AuthUser }) {
     );
   }
 
-  const leftoverClass = leftover >= 0 ? "pos" : "neg";
   const activeRecurring = store.recurrings.filter((rule) => rule.active).map((rule) => rule.id);
+
+  const secciones: SectionSpec[] = [
+    {
+      title: "Fijos",
+      hint: "Coche, móvil, alquiler. Pasan al mes siguiente.",
+      rows: mes.fijos,
+      empty: "Aún no hay fijos este mes.",
+    },
+    {
+      title: "Suscripciones",
+      hint: "Netflix, Spotify y el resto de cuotas.",
+      rows: mes.subs,
+      empty: "Ninguna suscripción este mes.",
+    },
+    {
+      title: "Variables",
+      hint: "Lo que cambia: comida, ocio, imprevistos.",
+      rows: mes.variables,
+      empty: "Sin gastos variables.",
+    },
+  ];
 
   return (
     <div className="shell">
-      <header className="top">
-        <div>
-          <h1>Neto</h1>
-          <p className="lede">
-            Lo que cobras, lo que se repite solo y lo que apartas.
-            {shared ? " Este libro lo lleváis entre varios." : ""}
-          </p>
-        </div>
-        <div className="top-right">
-          <div className="month-nav" role="group" aria-label="Mes">
-            <button type="button" onClick={() => setMonth(shiftMonth(month, -1))} aria-label="Mes anterior">
-              <IconChevron dir="left" />
-            </button>
-            <span>{monthLabel(month)}</span>
-            <button type="button" onClick={() => setMonth(shiftMonth(month, 1))} aria-label="Mes siguiente">
-              <IconChevron dir="right" />
-            </button>
-          </div>
-          <div className="who">
-            <span>{user.name}</span>
-            <button type="button" className="text-btn" onClick={() => setPwOpen(!pwOpen)}>
-              Contraseña
-            </button>
-            <button type="button" className="text-btn" onClick={() => pb.authStore.clear()}>
-              Salir
-            </button>
-          </div>
-        </div>
-      </header>
+      <TopBar
+        user={user}
+        month={month}
+        onMonth={setMonth}
+        shared={shared}
+        pwOpen={pwOpen}
+        onTogglePassword={() => setPwOpen(!pwOpen)}
+      />
 
       <BookBar
         books={books}
@@ -506,14 +179,14 @@ function Money({ user }: { user: AuthUser }) {
         meId={user.id}
         onPick={setBookId}
         onCreate={async (name) => {
-          const created = await run(() => createBook(name));
+          const created = await acciones.run(() => createBook(name));
           if (created) {
             setBooks((prev) => [...prev, created]);
             setBookId(created.id);
           }
         }}
         onJoin={async (code) => {
-          const entrado = await run(() => joinBook(code));
+          const entrado = await acciones.run(() => joinBook(code));
           if (!entrado) return false;
           setBooks((prev) =>
             prev.some((b) => b.id === entrado.id)
@@ -555,7 +228,7 @@ function Money({ user }: { user: AuthUser }) {
             {book ? ` ¿Los subo a «${book.name}»?` : ""}
           </span>
           <span className="banner-actions">
-            <button type="button" className="ghost small" onClick={uploadLegacy} disabled={busy}>
+            <button type="button" className="ghost small" onClick={subirLoViejo} disabled={acciones.busy}>
               Subirlos
             </button>
             <button
@@ -577,507 +250,71 @@ function Money({ user }: { user: AuthUser }) {
       ) : (
         <>
           <div className="stage">
-            <section className="ledger" aria-label="Resumen del mes">
-              <div className="balance">
-                <p className="balance-label">Te queda este mes</p>
-                <p key={month} className={`ledger-hero enter ${afterFixed >= 0 ? "pos" : "neg"}`}>
-                  {formatEUR(afterFixed)}
-                </p>
-                <p className="ledger-sub">
-                  {income > 0
-                    ? `De ${formatEUR(income)} cobrados, ya sin fijos ni suscripciones`
-                    : "Apunta lo que cobras y aquí verás lo que te queda"}
-                </p>
-              </div>
-
-              <ul className="ledger-rows">
-                <li>
-                  <span>Ingresos</span>
-                  <em className="pos">{formatEUR(income)}</em>
-                </li>
-                <li>
-                  <span>Fijos</span>
-                  <em className="neg">{formatOut(fijoTotal)}</em>
-                </li>
-                <li>
-                  <span>Suscripciones</span>
-                  <em className="neg">{formatOut(subTotal)}</em>
-                </li>
-                <li className="rule">
-                  <span>Variables</span>
-                  <em className="neg">{formatOut(variableTotal)}</em>
-                </li>
-                <li>
-                  <span>Ahorro</span>
-                  <em>{formatOut(savingTotal)}</em>
-                </li>
-                <li className="total">
-                  <span>Queda</span>
-                  <em className={leftoverClass}>{formatEUR(leftover)}</em>
-                </li>
-              </ul>
-            </section>
-
-            <form className="composer" onSubmit={submit}>
-              <div className="seg" role="tablist" aria-label="Tipo">
-                {(
-                  [
-                    ["expense", "Gasto"],
-                    ["income", "Ingreso"],
-                    ["saving", "Ahorro"],
-                  ] as const
-                ).map(([value, label]) => (
-                  <button
-                    key={value}
-                    type="button"
-                    role="tab"
-                    aria-selected={form.kind === value}
-                    className={form.kind === value ? "on" : ""}
-                    onClick={() => onKind(value)}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-
-              <label>
-                {form.kind === "income" ? "Qué cobras" : form.kind === "saving" ? "Nota" : "Qué es"}
-                <input
-                  value={form.note}
-                  onChange={(e) => onNote(e.target.value)}
-                  placeholder={
-                    form.kind === "income"
-                      ? "Nómina, extra…"
-                      : form.kind === "saving"
-                        ? "Opcional"
-                        : "Coche, Netflix, Mercadona…"
-                  }
-                  maxLength={80}
-                />
-              </label>
-
-              <div className="pair">
-                <label>
-                  Importe
-                  <input
-                    inputMode="decimal"
-                    placeholder="0,00"
-                    value={form.amount}
-                    onChange={(e) => patchForm({ amount: e.target.value })}
-                    required
-                  />
-                </label>
-                <label>
-                  Fecha
-                  <input
-                    type="date"
-                    value={form.date}
-                    onChange={(e) => patchForm({ date: e.target.value })}
-                    required
-                  />
-                </label>
-              </div>
-
-              {form.kind === "expense" && (
-                <>
-                  <fieldset className="chips">
-                    <legend>Sección</legend>
-                    {(
-                      [
-                        ["fijo", "Fijo"],
-                        ["suscripcion", "Suscripción"],
-                        ["variable", "Variable"],
-                      ] as const
-                    ).map(([value, label]) => (
-                      <label key={value} className={form.section === value ? "on" : ""}>
-                        <input
-                          type="radio"
-                          name="section"
-                          value={value}
-                          checked={form.section === value}
-                          onChange={() =>
-                            patchForm({ section: value, repeat: shouldRepeat(value, "expense") })
-                          }
-                        />
-                        {label}
-                      </label>
-                    ))}
-                  </fieldset>
-
-                  {form.section === "variable" && (
-                    <label>
-                      Categoría
-                      <select
-                        value={form.category}
-                        onChange={(e) => patchForm({ category: e.target.value })}
-                      >
-                        {VARIABLE_CATS.map((cat) => (
-                          <option key={cat} value={cat}>
-                            {cat}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                  )}
-                </>
-              )}
-
-              {form.kind === "saving" && (
-                <div className="pot-pick">
-                  <label>
-                    Bote
-                    <select
-                      value={form.potId}
-                      onChange={(e) => {
-                        if (e.target.value === "__new") {
-                          setPotOpen(true);
-                          patchForm({ potId: "" });
-                          return;
-                        }
-                        setPotOpen(false);
-                        patchForm({ potId: e.target.value, newPotName: "" });
-                      }}
-                      required={!potOpen && !form.newPotName}
-                    >
-                      <option value="">Elige un bote</option>
-                      {store.pots.map((pot) => (
-                        <option key={pot.id} value={pot.id}>
-                          {pot.name}
-                        </option>
-                      ))}
-                      <option value="__new">Nuevo bote…</option>
-                    </select>
-                  </label>
-                  {potOpen && (
-                    <div className="pair">
-                      <label>
-                        Nombre
-                        <input
-                          value={form.newPotName}
-                          onChange={(e) => patchForm({ newPotName: e.target.value })}
-                          placeholder="Emergencia, viaje…"
-                          required
-                        />
-                      </label>
-                      <label>
-                        Meta (opcional)
-                        <input
-                          inputMode="decimal"
-                          value={form.newPotTarget}
-                          onChange={(e) => patchForm({ newPotTarget: e.target.value })}
-                          placeholder="1.000"
-                        />
-                      </label>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {form.kind !== "saving" && (
-                <label className="check">
-                  <input
-                    type="checkbox"
-                    checked={form.repeat}
-                    onChange={(e) => patchForm({ repeat: e.target.checked })}
-                  />
-                  Repetir cada mes
-                </label>
-              )}
-
-              <button type="submit" className="primary" disabled={busy}>
-                {busy ? "Guardando…" : form.kind === "saving" ? "Apartar" : "Guardar"}
-              </button>
-            </form>
+            <Ledger month={month} mes={mes} />
+            <Composer
+              composer={composer}
+              pots={store.pots}
+              busy={acciones.busy}
+              onSubmit={acciones.addEntry}
+            />
           </div>
 
           <div className="sections">
-            <SectionList
-              title="Fijos"
-              hint="Coche, móvil, alquiler. Pasan al mes siguiente."
-              rows={fijos}
-              empty="Aún no hay fijos este mes."
-              activeRecurring={activeRecurring}
-              shared={shared}
-              onRemove={removeTx}
-              onStop={haltRecurring}
-            />
-            <SectionList
-              title="Suscripciones"
-              hint="Netflix, Spotify y el resto de cuotas."
-              rows={subs}
-              empty="Ninguna suscripción este mes."
-              activeRecurring={activeRecurring}
-              shared={shared}
-              onRemove={removeTx}
-              onStop={haltRecurring}
-            />
-            <SectionList
-              title="Variables"
-              hint="Lo que cambia: comida, ocio, imprevistos."
-              rows={variables}
-              empty="Sin gastos variables."
-              activeRecurring={activeRecurring}
-              shared={shared}
-              onRemove={removeTx}
-              onStop={haltRecurring}
-            />
+            {secciones.map((seccion) => (
+              <SectionList
+                key={seccion.title}
+                {...seccion}
+                activeRecurring={activeRecurring}
+                shared={shared}
+                onRemove={acciones.removeTx}
+                onStop={acciones.stopRecurring}
+              />
+            ))}
           </div>
 
           <Budgets
             budgets={store.budgets}
             txs={store.txs}
             month={month}
-            busy={busy}
-            onSet={ponerTope}
-            onRemove={quitarTope}
+            busy={acciones.busy}
+            onSet={acciones.setCap}
+            onRemove={acciones.removeCap}
           />
 
           <History txs={store.txs} onPickMonth={setMonth} />
 
-          <section className="pots">
-            <div className="pots-head">
-              <div>
-                <h2>Ahorro</h2>
-                <p>
-                  Botes que van creciendo mes a mes. Este mes: {formatEUR(savingTotal)}.
-                </p>
-              </div>
-            </div>
-            {store.pots.length === 0 ? (
-              <form className="new-pot" onSubmit={newPot}>
-                <p>Crea el primero: emergencia, viaje, entrada del piso…</p>
-                <div className="pair">
-                  <label>
-                    Nombre
-                    <input name="name" placeholder="Fondo de emergencia" required />
-                  </label>
-                  <label>
-                    Meta
-                    <input name="target" inputMode="decimal" placeholder="1.000" />
-                  </label>
-                </div>
-                <button type="submit" className="ghost" disabled={busy}>
-                  <IconPlus size={16} /> Crear bote
-                </button>
-              </form>
-            ) : (
-              <ul className="pot-grid">
-                {store.pots.map((pot) => {
-                  const saved = pots.get(pot.id) || 0;
-                  const ratio = pot.target > 0 ? Math.min(1, saved / pot.target) : 0;
-                  return (
-                    <li key={pot.id}>
-                      <div className="bar-meta">
-                        {renombrando === pot.id ? (
-                          <form
-                            className="pot-rename"
-                            onSubmit={(e) => {
-                              e.preventDefault();
-                              const valor = String(
-                                new FormData(e.currentTarget).get("nombre") || "",
-                              ).trim();
-                              if (valor && valor !== pot.name) renombrarBote(pot.id, valor);
-                              else setRenombrando(null);
-                            }}
-                          >
-                            <input name="nombre" defaultValue={pot.name} maxLength={60} autoFocus required />
-                            <button type="submit" className="text-btn" disabled={busy}>
-                              Guardar
-                            </button>
-                            <button type="button" className="text-btn" onClick={() => setRenombrando(null)}>
-                              Dejarlo
-                            </button>
-                          </form>
-                        ) : (
-                          <strong>{pot.name}</strong>
-                        )}
-                        <span>
-                          {formatEUR(saved)}
-                          {pot.target > 0 ? ` / ${formatEUR(pot.target)}` : ""}
-                        </span>
-                      </div>
-                      {pot.target > 0 && (
-                        <div className="bar-track" aria-hidden>
-                          <div className="bar-fill" style={{ width: `${ratio * 100}%` }} />
-                        </div>
-                      )}
+          <Pots
+            pots={store.pots}
+            txs={store.txs}
+            savingTotal={mes.savingTotal}
+            busy={acciones.busy}
+            onCreate={async (name, target) => {
+              const pot = await acciones.potCreate(name, target);
+              // El bote recién creado queda elegido en el formulario: quien lo
+              // crea es porque va a meterle algo ahora mismo.
+              if (pot) composer.patch({ potId: pot.id, kind: "saving", section: "ahorro" });
+            }}
+            onWithdraw={acciones.potWithdraw}
+            onRename={acciones.potRename}
+            onDelete={acciones.potDelete}
+            onError={setError}
+          />
 
-                      {sacandoDe === pot.id ? (
-                        <form
-                          className="pot-out"
-                          onSubmit={(e) => {
-                            e.preventDefault();
-                            const datos = new FormData(e.currentTarget);
-                            const importe = parseAmount(String(datos.get("importe") || ""));
-                            if (importe == null) return;
-                            if (importe > saved) {
-                              setError(`En «${pot.name}» solo hay ${formatEUR(saved)}.`);
-                              return;
-                            }
-                            sacarDelBote(
-                              pot.id,
-                              importe,
-                              String(datos.get("nota") || "").trim() || `De ${pot.name}`,
-                            );
-                          }}
-                        >
-                          <div className="pair">
-                            <label>
-                              Cuánto sacas
-                              <input name="importe" inputMode="decimal" placeholder="0,00" autoFocus required />
-                            </label>
-                            <label>
-                              Para qué
-                              <input name="nota" placeholder="Opcional" maxLength={80} />
-                            </label>
-                          </div>
-                          <div className="edit-actions">
-                            <button type="submit" className="ghost small" disabled={busy}>
-                              Sacar
-                            </button>
-                            <button type="button" className="text-btn" onClick={() => setSacandoDe(null)}>
-                              Dejarlo
-                            </button>
-                          </div>
-                        </form>
-                      ) : (
-                        <div className="pot-actions">
-                          <button
-                            type="button"
-                            className="text-btn"
-                            onClick={() => setRenombrando(pot.id)}
-                          >
-                            Renombrar
-                          </button>
-                          <button
-                            type="button"
-                            className="text-btn"
-                            onClick={() => {
-                              setSacandoDe(pot.id);
-                              setError(null);
-                            }}
-                            disabled={saved <= 0}
-                            title={saved <= 0 ? "Este bote está vacío" : "Sacar dinero del bote"}
-                          >
-                            <IconArrowOut size={13} /> Sacar
-                          </button>
-                          <button
-                            type="button"
-                            className="text-btn"
-                            onClick={() => {
-                              const aviso =
-                                saved > 0
-                                  ? `«${pot.name}» tiene ${formatEUR(saved)} apartados. Si lo borras, esos movimientos se quedan pero sin bote. ¿Sigo?`
-                                  : `¿Borro el bote «${pot.name}»?`;
-                              if (confirm(aviso)) borrarBote(pot.id);
-                            }}
-                          >
-                            Borrar
-                          </button>
-                        </div>
-                      )}
-                    </li>
-                  );
-                })}
-                <li className="pot-add">
-                  <form onSubmit={newPot}>
-                    <label>
-                      Otro bote
-                      <input name="name" placeholder="Nombre" required />
-                    </label>
-                    <div className="pair">
-                      <label>
-                        Meta
-                        <input name="target" inputMode="decimal" placeholder="Opcional" />
-                      </label>
-                      <button type="submit" className="ghost" disabled={busy}>
-                        Añadir
-                      </button>
-                    </div>
-                  </form>
-                </li>
-              </ul>
-            )}
-          </section>
-
-          <section className="movements">
-            <h2>Movimientos de {monthLabel(month)}</h2>
-            {monthTxs.length === 0 ? (
-              <p className="empty">
-                Este mes está vacío. Apunta un ingreso o un fijo y se quedará para el siguiente.
-              </p>
-            ) : (
-              <ul className="tx-list">
-                {monthTxs.map((tx) =>
-                  editando === tx.id ? (
-                    <li key={tx.id} className="editing">
-                      <EditTx
-                        tx={tx}
-                        rule={store.recurrings.find((r) => r.id === tx.recurringId)}
-                        pots={store.pots}
-                        busy={busy}
-                        onSave={(cambios, proximos) => guardarEdicion(tx, cambios, proximos)}
-                        onCancel={() => setEditando(null)}
-                      />
-                    </li>
-                  ) : (
-                    <li key={tx.id}>
-                      <span className="av" style={{ background: colorDe(tx.note || tx.category) }} aria-hidden>
-                        {inicial(tx.note || tx.category)}
-                      </span>
-                      <div className="tx-body">
-                        <strong>{tx.note || tx.category}</strong>
-                        <span>
-                          {moneyDate(tx.date)}
-                          {tx.kind === "income"
-                            ? " · Ingreso"
-                            : tx.out
-                              ? " · Sacado del ahorro"
-                              : ` · ${SECTION_LABEL[tx.section]}`}
-                          {tx.kind === "expense" && tx.section === "variable" && tx.category
-                            ? ` · ${tx.category}`
-                            : ""}
-                          {shared && tx.createdByName ? ` · ${tx.createdByName}` : ""}
-                        </span>
-                      </div>
-                      <div className="tx-right">
-                        {tx.recurringId && (
-                          <span className="badge">
-                            <IconRepeat size={13} /> cada mes
-                          </span>
-                        )}
-                        <em className={tx.kind === "income" || tx.out ? "pos" : "neg"}>
-                          {tx.kind === "income" || tx.out ? "+" : "−"}
-                          {formatEUR(tx.amount)}
-                        </em>
-                        {tx.recurringId && activeRecurring.includes(tx.recurringId) && (
-                          <button
-                            type="button"
-                            className="text-btn"
-                            onClick={() => haltRecurring(tx.recurringId!)}
-                          >
-                            Dejar de repetir
-                          </button>
-                        )}
-                        <button
-                          type="button"
-                          className="icon-btn"
-                          aria-label={`Editar ${tx.note || tx.category}`}
-                          onClick={() => setEditando(tx.id)}
-                        >
-                          <IconPencil size={15} />
-                        </button>
-                        <button type="button" aria-label="Eliminar" onClick={() => removeTx(tx)}>
-                          <IconTrash size={15} />
-                        </button>
-                      </div>
-                    </li>
-                  ),
-                )}
-              </ul>
-            )}
-            {spent > 0 && <p className="footnote">Gastado este mes: {formatEUR(spent)}.</p>}
-          </section>
+          <Movements
+            month={month}
+            rows={mes.txs}
+            spent={mes.spent}
+            recurrings={store.recurrings}
+            activeRecurring={activeRecurring}
+            pots={store.pots}
+            shared={shared}
+            busy={acciones.busy}
+            editando={editando}
+            onEdit={setEditando}
+            onSave={acciones.saveEdit}
+            onRemove={acciones.removeTx}
+            onStop={acciones.stopRecurring}
+          />
         </>
       )}
 
@@ -1087,72 +324,3 @@ function Money({ user }: { user: AuthUser }) {
     </div>
   );
 }
-
-function SectionList({
-  title,
-  hint,
-  rows,
-  empty,
-  activeRecurring,
-  shared,
-  onRemove,
-  onStop,
-}: {
-  title: string;
-  hint: string;
-  rows: Tx[];
-  empty: string;
-  activeRecurring: string[];
-  shared: boolean;
-  onRemove: (tx: Tx) => void;
-  onStop: (id: string) => void;
-}) {
-  return (
-    <section>
-      <h2>{title}</h2>
-      <p className="hint">{hint}</p>
-      {rows.length === 0 ? (
-        <p className="empty">{empty}</p>
-      ) : (
-        <ul className="mini-list">
-          {rows.map((tx) => (
-            <li key={tx.id}>
-              <span className="av" style={{ background: colorDe(tx.note || tx.category) }} aria-hidden>
-                {inicial(tx.note || tx.category)}
-              </span>
-              <div className="tx-body">
-                <strong>{tx.note || tx.category}</strong>
-                {tx.recurringId && (
-                  <span className="badge">
-                    <IconRepeat size={12} /> mes a mes
-                  </span>
-                )}
-                {shared && tx.createdByName && <span className="by">{tx.createdByName}</span>}
-              </div>
-              <div className="tx-right">
-                <em className="neg">{formatOut(tx.amount)}</em>
-                {tx.recurringId && activeRecurring.includes(tx.recurringId) && (
-                  <button
-                    type="button"
-                    className="icon-btn"
-                    title="Dejar de repetir"
-                    aria-label="Dejar de repetir"
-                    onClick={() => {
-                      if (tx.recurringId) onStop(tx.recurringId);
-                    }}
-                  >
-                    <IconClose size={14} />
-                  </button>
-                )}
-                <button type="button" className="icon-btn" aria-label="Eliminar" onClick={() => onRemove(tx)}>
-                  <IconTrash size={14} />
-                </button>
-              </div>
-            </li>
-          ))}
-        </ul>
-      )}
-    </section>
-  );
-}
-

@@ -86,3 +86,20 @@ export type Book = {
   memberIds: string[];
   memberNames: Record<string, string>;
 };
+
+/**
+ * Lo que hay escrito en el formulario de apuntar, tal cual: los importes son
+ * texto porque vienen de un input y aún no se han interpretado.
+ */
+export type EntryDraft = {
+  kind: Kind;
+  amount: string;
+  note: string;
+  date: string;
+  section: Section;
+  category: string;
+  repeat: boolean;
+  potId: string;
+  newPotName: string;
+  newPotTarget: string;
+};
