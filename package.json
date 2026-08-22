@@ -7,6 +7,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build && node infra/sw.mjs",
     "lint": "oxlint",
+    "test": "node --import ./infra/test-resolve.mjs --test 'src/**/*.test.ts'",
     "preview": "vite preview"
   },
   "dependencies": {

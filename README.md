@@ -40,6 +40,16 @@ hacen el trabajo:
 Ojo con lo que el código sí concede: quien entra ve y edita **todo** ese libro,
 como cualquier otro miembro. Es la llave de ese libro, trátalo como tal.
 
+## Comprobar
+
+Los cálculos del dinero y la clasificación automática tienen tests; se corren
+con el `node --test` que ya trae Node, sin runner aparte. En cada push se pasan
+antes de construir, así que un test en rojo no llega a producción.
+
+```bash
+npm test
+```
+
 ```bash
 # actualizar el esquema tras tocar infra/pb-schema.mjs
 PB_ADMIN_EMAIL=... PB_ADMIN_PASSWORD=... node infra/pb-schema.mjs
