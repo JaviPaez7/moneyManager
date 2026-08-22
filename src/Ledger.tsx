@@ -20,27 +20,29 @@ export default function Ledger({ month, mes }: { month: string; mes: MonthBreakd
       <ul className="ledger-rows">
         <li>
           <span>Ingresos</span>
-          <em className="pos">{formatEUR(mes.income)}</em>
+          <em className={mes.income > 0 ? "pos" : "zero"}>{formatEUR(mes.income)}</em>
         </li>
         <li>
           <span>Fijos</span>
-          <em className="neg">{formatOut(mes.fijoTotal)}</em>
+          <em className={mes.fijoTotal > 0 ? "neg" : "zero"}>{formatOut(mes.fijoTotal)}</em>
         </li>
         <li>
           <span>Suscripciones</span>
-          <em className="neg">{formatOut(mes.subTotal)}</em>
+          <em className={mes.subTotal > 0 ? "neg" : "zero"}>{formatOut(mes.subTotal)}</em>
         </li>
         <li className="rule">
           <span>Variables</span>
-          <em className="neg">{formatOut(mes.variableTotal)}</em>
+          <em className={mes.variableTotal > 0 ? "neg" : "zero"}>{formatOut(mes.variableTotal)}</em>
         </li>
         <li>
           <span>Ahorro</span>
-          <em>{formatOut(mes.savingTotal)}</em>
+          <em className={mes.savingTotal === 0 ? "zero" : undefined}>{formatOut(mes.savingTotal)}</em>
         </li>
         <li className="total">
           <span>Queda</span>
-          <em className={mes.leftover >= 0 ? "pos" : "neg"}>{formatEUR(mes.leftover)}</em>
+          <em className={mes.leftover === 0 ? "zero" : mes.leftover > 0 ? "pos" : "neg"}>
+            {formatEUR(mes.leftover)}
+          </em>
         </li>
       </ul>
     </section>

@@ -79,10 +79,13 @@ export function IconPencil(props: IconProps) {
 }
 
 export function IconArrowOut(props: IconProps) {
+  // Sacar de un bote: la flecha sale del recipiente. Antes era idéntica a la
+  // de Ingreso (una flecha arriba a secas) y confundía entrada con salida.
   return (
     <Svg {...props}>
-      <path d="M12 19V5" />
-      <path d="m5 12 7-7 7 7" />
+      <path d="M5 15v3a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-3" />
+      <path d="M12 15V4" />
+      <path d="m8 8 4-4 4 4" />
     </Svg>
   );
 }
