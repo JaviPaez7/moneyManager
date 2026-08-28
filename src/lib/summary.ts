@@ -138,9 +138,9 @@ export type MonthBreakdown = {
   variableTotal: number;
   /** Lo apartado menos lo sacado de los botes. Puede ser negativo. */
   savingTotal: number;
-  /** Lo que queda tras los fijos y las suscripciones: el número de portada. */
+  /** El sobre del mes: ingresos menos fijos y suscripciones. Línea de apoyo. */
   afterFixed: number;
-  /** Lo que queda de verdad, ya con las variables y el ahorro descontados. */
+  /** Lo que queda ahora, ya con variables y ahorro: el número de portada. */
   leftover: number;
   /** Todo lo gastado, sin contar el ahorro. */
   spent: number;

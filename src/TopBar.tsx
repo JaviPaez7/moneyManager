@@ -1,4 +1,6 @@
+import { useEffect, useRef, useState } from "react";
 import { IconChevron } from "./icons";
+import { colorDe, inicial } from "./lib/avatar";
 import { monthLabel, shiftMonth } from "./lib/format";
 import { pb, type AuthUser } from "./lib/pb";
 
@@ -6,26 +8,37 @@ export default function TopBar({
   user,
   month,
   onMonth,
-  shared,
   pwOpen,
   onTogglePassword,
 }: {
   user: AuthUser;
   month: string;
   onMonth: (month: string) => void;
-  shared: boolean;
   pwOpen: boolean;
   onTogglePassword: () => void;
 }) {
+  const [cuenta, setCuenta] = useState(false);
+  const menu = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!cuenta) return;
+    function fuera(e: PointerEvent) {
+      if (menu.current && !menu.current.contains(e.target as Node)) setCuenta(false);
+    }
+    function tecla(e: KeyboardEvent) {
+      if (e.key === "Escape") setCuenta(false);
+    }
+    document.addEventListener("pointerdown", fuera);
+    document.addEventListener("keydown", tecla);
+    return () => {
+      document.removeEventListener("pointerdown", fuera);
+      document.removeEventListener("keydown", tecla);
+    };
+  }, [cuenta]);
+
   return (
     <header className="top">
-      <div>
-        <h1>Neto</h1>
-        <p className="lede">
-          Lo que cobras, lo que se repite solo y lo que apartas.
-          {shared ? " Este libro lo lleváis entre varios." : ""}
-        </p>
-      </div>
+      <h1>Neto</h1>
       <div className="top-right">
         <div className="month-nav" role="group" aria-label="Mes">
           <button type="button" onClick={() => onMonth(shiftMonth(month, -1))} aria-label="Mes anterior">
@@ -36,14 +49,39 @@ export default function TopBar({
             <IconChevron dir="right" />
           </button>
         </div>
-        <div className="who">
-          <span>{user.name}</span>
-          <button type="button" className="text-btn" onClick={onTogglePassword} aria-expanded={pwOpen}>
-            Contraseña
+        <div className="account" ref={menu}>
+          <button
+            type="button"
+            className="account-btn"
+            aria-expanded={cuenta}
+            aria-haspopup="menu"
+            aria-label={`Cuenta de ${user.name}`}
+            onClick={() => setCuenta((abierto) => !abierto)}
+          >
+            <span className="av account-av" style={{ background: colorDe(user.name) }} aria-hidden>
+              {inicial(user.name)}
+            </span>
           </button>
-          <button type="button" className="text-btn" onClick={() => pb.authStore.clear()}>
-            Salir
-          </button>
+          {cuenta && (
+            <div className="account-menu" role="menu">
+              <p className="account-name">{user.name}</p>
+              <button
+                type="button"
+                role="menuitem"
+                className="text-btn"
+                aria-expanded={pwOpen}
+                onClick={() => {
+                  setCuenta(false);
+                  onTogglePassword();
+                }}
+              >
+                Contraseña
+              </button>
+              <button type="button" role="menuitem" className="text-btn" onClick={() => pb.authStore.clear()}>
+                Salir
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </header>

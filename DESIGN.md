@@ -53,12 +53,16 @@ Sin monoespaciada: era el recurso del mundo anterior y aquí no pinta nada.
 
 - **Tarjetas** con `border-radius: 20px` (16px en piezas pequeñas), sin borde en oscuro y
   con sombra suave en claro. Nunca una tarjeta dentro de otra.
-- **Saldo** arriba del todo, sobre la tarjeta con degradado: cifra a 3–3.5rem, y debajo,
-  en voz baja, de qué mes es y de cuánto se descuenta.
+- **Cabecera**: «Neto», el mes y un control de cuenta. El selector de libro va solo;
+  crear, compartir y entrar quedan detrás de «Más».
+- **Saldo** arriba del todo, sobre la tarjeta con degradado: cifra a 3–3.5rem (lo que
+  sobra ahora), y debajo, en voz baja, el sobre tras fijos. La resta del mes se abre
+  en la misma tarjeta, cerrada por defecto.
 - **Fila de acciones**: círculos de 3.5rem con icono y su etiqueta debajo, como los
   «Añadir dinero / Enviar / Cambiar» de cualquier banco.
-- **Filas de movimiento**: círculo de 2.6rem con la inicial del concepto sobre un color
-  estable derivado del propio texto, título, subtítulo en gris e importe a la derecha.
+- **Una lista** de movimientos del mes, cronológica, con el círculo de 2.6rem, la
+  inicial del concepto y el importe a la derecha. Sin tarjetas de sección (fijos /
+  suscripciones / variables) en la portada.
 - Ancho de contenido máximo 560px: la app se diseña como una columna de móvil y en
   escritorio se queda centrada, como hacen las apps de banco.
 

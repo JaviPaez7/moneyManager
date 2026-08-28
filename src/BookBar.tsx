@@ -31,6 +31,7 @@ export default function BookBar({
   onError: (message: string) => void;
 }) {
   const [panel, setPanel] = useState<Panel>("none");
+  const [mas, setMas] = useState(false);
   const [name, setName] = useState("");
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
@@ -43,6 +44,7 @@ export default function BookBar({
   function abrir(siguiente: Panel) {
     setPanel(panel === siguiente ? "none" : siguiente);
     setCopiado(false);
+    setMas(true);
   }
 
   async function submitNew(e: FormEvent) {
@@ -125,26 +127,39 @@ export default function BookBar({
           </select>
         </label>
 
-        <button type="button" className="ghost small" onClick={() => abrir("new")}>
-          <IconPlus size={14} /> Libro
+        <button
+          type="button"
+          className="ghost small"
+          aria-expanded={mas}
+          onClick={() => setMas((abierto) => !abierto)}
+        >
+          Más
         </button>
-
-        {isOwner && (
-          <button type="button" className="ghost small" onClick={() => abrir("share")}>
-            Compartir
-          </button>
-        )}
-
-        <button type="button" className="ghost small" onClick={() => abrir("join")}>
-          Entrar con un código
-        </button>
-
-        {others.length > 0 && book && (
-          <span className="with-who">
-            con {others.map((id) => book.memberNames[id] || "alguien").join(", ")}
-          </span>
-        )}
       </div>
+
+      {mas && (
+        <div className="bookbar-more">
+          <button type="button" className="ghost small" onClick={() => abrir("new")}>
+            <IconPlus size={14} /> Libro
+          </button>
+
+          {isOwner && (
+            <button type="button" className="ghost small" onClick={() => abrir("share")}>
+              Compartir
+            </button>
+          )}
+
+          <button type="button" className="ghost small" onClick={() => abrir("join")}>
+            Entrar con un código
+          </button>
+
+          {others.length > 0 && book && (
+            <span className="with-who">
+              con {others.map((id) => book.memberNames[id] || "alguien").join(", ")}
+            </span>
+          )}
+        </div>
+      )}
 
       {panel === "new" && (
         <form className="book-panel" onSubmit={submitNew}>

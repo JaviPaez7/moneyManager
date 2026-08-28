@@ -46,12 +46,12 @@ describe("monthBreakdown", () => {
     deepEqual(mes.savings, [aparta]);
   });
 
-  it("el número de portada descuenta fijos y suscripciones, pero no lo demás", () => {
+  it("el sobre tras fijos no descuenta variables ni ahorro", () => {
     const mes = monthBreakdown(agosto, "2026-08");
     equal(mes.afterFixed, 2000 - 700 - 13);
   });
 
-  it("lo que queda de verdad descuenta también variables y ahorro", () => {
+  it("el número de portada descuenta también variables y ahorro", () => {
     const mes = monthBreakdown(agosto, "2026-08");
     equal(mes.leftover, 2000 - 700 - 13 - 60 - 200);
   });

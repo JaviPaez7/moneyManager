@@ -18,11 +18,13 @@ sueltos: se apunta un gasto justo después de hacerlo, de pie, en diez segundos.
 ## Product Purpose
 
 Llevar el registro de lo que entra y lo que sale, y responder de un vistazo a **cuánto
-queda libre este mes**. El propio Javi lo dijo por WhatsApp al pedirlo: «es solo pa
-llevar un registro de los gastos y ver qué me sobra y qué no, y tenerlo visible ahí».
+queda ahora este mes** — ya descontados fijos, variables y lo apartado. El propio Javi
+lo dijo por WhatsApp al pedirlo: «es solo pa llevar un registro de los gastos y ver
+qué me sobra y qué no, y tenerlo visible ahí».
 
 Éxito = abrir la app, apuntar algo y cerrarla sin fricción; y saber en cualquier momento
-qué queda después de los fijos.
+qué te sobra. Lo que quedaba después de los fijos se ve debajo, como el sobre del mes,
+no como la cifra grande.
 
 ## Positioning
 

@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from "react";
 import "./App.css";
 import Balance from "./Balance";
 import BookBar from "./BookBar";
-import Breakdown from "./Breakdown";
 import Budgets from "./Budgets";
 import Composer from "./Composer";
 import History from "./History";
@@ -10,7 +9,6 @@ import Login from "./Login";
 import Movements from "./Movements";
 import Password from "./Password";
 import Pots from "./Pots";
-import SectionList, { type SectionSpec } from "./SectionList";
 import Snack from "./Snack";
 import TopBar from "./TopBar";
 import { createBook, friendlyError, joinBook, listBooks } from "./lib/api";
@@ -162,33 +160,12 @@ function Money({ user }: { user: AuthUser }) {
   // Un libro recién nacido no tiene nada: ni movimientos, ni fijos, ni botes,
   // ni topes. En ese caso la pantalla se reduce al saldo y al formulario, sin
   // la pila de tarjetas vacías. Un mes vacío de un libro con historia sí
-  // enseña sus secciones: ahí el "aún no hay nada este mes" sí dice algo.
+  // enseña la lista: ahí el "aún no hay nada este mes" sí dice algo.
   const libroNuevo =
     store.txs.length === 0 &&
     store.recurrings.length === 0 &&
     store.pots.length === 0 &&
     store.budgets.length === 0;
-
-  const secciones: SectionSpec[] = [
-    {
-      title: "Fijos",
-      hint: "Coche, móvil, alquiler. Pasan al mes siguiente.",
-      rows: mes.fijos,
-      empty: "Aún no hay fijos este mes.",
-    },
-    {
-      title: "Suscripciones",
-      hint: "Netflix, Spotify y el resto de cuotas.",
-      rows: mes.subs,
-      empty: "Ninguna suscripción este mes.",
-    },
-    {
-      title: "Variables",
-      hint: "Lo que cambia: comida, ocio, imprevistos.",
-      rows: mes.variables,
-      empty: "Sin gastos variables.",
-    },
-  ];
 
   return (
     <div className="shell">
@@ -196,7 +173,6 @@ function Money({ user }: { user: AuthUser }) {
         user={user}
         month={month}
         onMonth={setMonth}
-        shared={shared}
         pwOpen={pwOpen}
         onTogglePassword={() => setPwOpen(!pwOpen)}
       />
@@ -305,20 +281,21 @@ function Money({ user }: { user: AuthUser }) {
             </section>
           ) : (
             <>
-              <Breakdown mes={mes} />
-
-              <div className="sections">
-                {secciones.map((seccion) => (
-                  <SectionList
-                    key={seccion.title}
-                    {...seccion}
-                    activeRecurring={activeRecurring}
-                    shared={shared}
-                    onRemove={borrarMovimiento}
-                    onStop={acciones.stopRecurring}
-                  />
-                ))}
-              </div>
+              <Movements
+                month={month}
+                rows={mes.txs}
+                spent={mes.spent}
+                recurrings={store.recurrings}
+                activeRecurring={activeRecurring}
+                pots={store.pots}
+                shared={shared}
+                busy={acciones.busy}
+                editando={editando}
+                onEdit={setEditando}
+                onSave={acciones.saveEdit}
+                onRemove={borrarMovimiento}
+                onStop={acciones.stopRecurring}
+              />
 
               <Budgets
                 budgets={store.budgets}
@@ -337,31 +314,15 @@ function Money({ user }: { user: AuthUser }) {
                 savingTotal={mes.savingTotal}
                 busy={acciones.busy}
                 onCreate={async (name, target) => {
-                  const pot = await acciones.potCreate(name, target);
                   // El bote recién creado queda elegido en el formulario: quien
                   // lo crea es porque va a meterle algo ahora mismo.
+                  const pot = await acciones.potCreate(name, target);
                   if (pot) composer.patch({ potId: pot.id, kind: "saving", section: "ahorro" });
                 }}
                 onWithdraw={acciones.potWithdraw}
                 onRename={acciones.potRename}
                 onDelete={acciones.potDelete}
                 onError={setError}
-              />
-
-              <Movements
-                month={month}
-                rows={mes.txs}
-                spent={mes.spent}
-                recurrings={store.recurrings}
-                activeRecurring={activeRecurring}
-                pots={store.pots}
-                shared={shared}
-                busy={acciones.busy}
-                editando={editando}
-                onEdit={setEditando}
-                onSave={acciones.saveEdit}
-                onRemove={borrarMovimiento}
-                onStop={acciones.stopRecurring}
               />
             </>
           )}

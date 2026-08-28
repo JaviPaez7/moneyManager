@@ -133,10 +133,6 @@ body {
   letter-spacing: -0.02em;
 }
 
-.lede {
-  display: none;
-}
-
 .top-right {
   display: flex;
   align-items: center;
@@ -178,24 +174,66 @@ body {
 
 .month-nav button:hover,
 .icon-btn:hover,
-.tx-right button:hover {
+.tx-right button:hover,
+.account-btn:hover {
   color: var(--ink);
   background: var(--card-2);
 }
 
-.who {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.6rem;
-  font-size: 0.78rem;
-  color: var(--muted);
+.account {
+  position: relative;
+}
+
+.account-btn {
+  display: grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  padding: 0;
+  border: 0;
+  border-radius: 99px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.account-btn:hover .account-av {
+  filter: brightness(1.08);
+}
+
+.account-av {
+  width: 2.2rem;
+  height: 2.2rem;
+  font-size: 0.85rem;
+}
+
+.account-menu {
+  position: absolute;
+  top: calc(100% + 0.4rem);
+  right: 0;
+  z-index: 8;
+  min-width: 10.5rem;
+  display: grid;
+  gap: 0.15rem;
+  padding: 0.75rem 0.9rem;
+  background: var(--card);
+  border-radius: 16px;
+  box-shadow: var(--sombra), 0 10px 28px rgba(11, 12, 15, 0.28);
+}
+
+.account-name {
+  margin: 0 0 0.25rem;
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+.account-menu .text-btn {
+  justify-self: start;
+  min-height: 2.2rem;
 }
 
 /* ---------- tarjetas ---------- */
 
-.breakdown,
 .composer,
-.sections > section,
 .pots,
 .movements,
 .history,
@@ -208,11 +246,6 @@ body {
 }
 
 .stage {
-  display: grid;
-  gap: 1rem;
-}
-
-.sections {
   display: grid;
   gap: 1rem;
 }
@@ -261,6 +294,58 @@ body {
   color: rgba(255, 255, 255, 0.92);
 }
 
+.balance-cuenta {
+  margin-top: 0.85rem;
+}
+
+.balance-cuenta summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.92);
+  list-style: none;
+}
+
+.balance-cuenta summary::-webkit-details-marker {
+  display: none;
+}
+
+.balance-cuenta summary::after {
+  content: "";
+  width: 0.45rem;
+  height: 0.45rem;
+  margin-top: -0.15em;
+  border-right: 1.6px solid currentColor;
+  border-bottom: 1.6px solid currentColor;
+  transform: rotate(45deg);
+}
+
+.balance-cuenta[open] summary::after {
+  margin-top: 0.15em;
+  transform: rotate(-135deg);
+}
+
+.balance-cuenta .ledger-rows {
+  margin-top: 0.35rem;
+}
+
+.balance .ledger-rows li {
+  border-bottom-color: rgba(255, 255, 255, 0.2);
+}
+
+.balance .ledger-rows span,
+.balance .ledger-rows em,
+.balance .ledger-rows .pos,
+.balance .ledger-rows .neg,
+.balance .ledger-rows .zero,
+.balance .ledger-rows .total span,
+.balance .ledger-rows .total em {
+  color: #fff;
+}
+
 /* Todo lo que va sobre el degradado es blanco, tenga la clase que tenga: en
    claro la regla de "positivo" ganaba y el saldo salía en negro sobre morado.
    Un saldo negativo tampoco se pinta de rojo aquí; ya lo dice el signo. */
@@ -295,7 +380,6 @@ body {
 }
 
 .ledger-rows em,
-.mini-list em,
 .tx-right em,
 .history-nums em {
   font-style: normal;
@@ -651,7 +735,6 @@ button {
 
 /* ---------- listas con círculo ---------- */
 
-.sections h2,
 .pots h2,
 .movements h2,
 .budgets h2,
@@ -675,7 +758,6 @@ button {
   color: var(--muted);
 }
 
-.mini-list,
 .tx-list,
 .pot-grid,
 .people {
@@ -684,7 +766,6 @@ button {
   padding: 0;
 }
 
-.mini-list li,
 .tx-list li {
   display: flex;
   align-items: center;
@@ -693,12 +774,12 @@ button {
   border-bottom: 1px solid var(--line);
 }
 
-.mini-list li:last-child,
 .tx-list li:last-child {
   border-bottom: 0;
 }
 
-.av {
+.av,
+.tx-list .av {
   display: grid;
   place-items: center;
   width: 2.6rem;
@@ -708,6 +789,8 @@ button {
   color: #fff;
   font-size: 1rem;
   font-weight: 700;
+  line-height: 1;
+  text-align: center;
 }
 
 .tx-body {
@@ -715,7 +798,6 @@ button {
   min-width: 0;
 }
 
-.mini-list strong,
 .tx-list strong {
   display: block;
   font-size: 0.95rem;
@@ -725,7 +807,7 @@ button {
   white-space: nowrap;
 }
 
-.tx-list span {
+.tx-list .tx-body span {
   display: block;
   margin-top: 0.1rem;
   font-size: 0.78rem;
@@ -989,7 +1071,8 @@ button {
   gap: 0.75rem;
 }
 
-.bookbar-row {
+.bookbar-row,
+.bookbar-more {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
@@ -1287,22 +1370,8 @@ footer p {
     padding-top: 1rem;
   }
 
-  /* El mes y la sesión no caben junto al nombre: bajan a su propia línea, o la
-     cabecera empuja la página y todo scrollea en horizontal. */
   .top {
-    flex-wrap: wrap;
     gap: 0.6rem;
-  }
-
-  .top-right {
-    flex: 1 1 100%;
-    flex-wrap: wrap;
-    row-gap: 0.6rem;
-    justify-content: space-between;
-  }
-
-  .who {
-    min-width: 0;
   }
 
   .top h1 {
