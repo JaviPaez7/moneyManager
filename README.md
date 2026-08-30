@@ -16,7 +16,8 @@ personal, con varios es compartida y los dos ven y apuntan lo mismo.
 | Identidad | `DESIGN.md`; iconos e imagen social con `node infra/icons.mjs` |
 | Esquema | `infra/pb-schema.mjs` (idempotente) |
 | Alta de cuentas | Desde la propia app; `infra/pb-user.mjs` para hacerlo a dedo |
-| Correo | SMTP de PocketBase; sin él no se puede recuperar la contraseña |
+| Correo | SMTP de PocketBase → Resend, la misma cuenta que Citaly, DanceFloor y Tanke |
+| Remitente | `Neto <no-reply@mail.javistudio.dev>`; el dominio ya estaba verificado |
 
 Quien olvida su contraseña pide un enlace desde la propia pantalla de entrada.
 El correo lo manda PocketBase con la plantilla de `infra/pb-schema.mjs`, y el
