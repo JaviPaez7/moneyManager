@@ -8,15 +8,22 @@ web
 
 ## Users
 
-Javi (dueño) y Pablo, dos amigos que llevan sus gastos personales y además comparten
-algunos. Cualquiera puede registrarse, así que puede sumarse algún amigo más, pero el
-producto no persigue usuarios desconocidos.
+**Cualquiera que se registre.** El registro es abierto y Neto es para quien quiera
+llevar sus cuentas, sea quien sea.
 
-**Desde el 20/08/2026 también lo usa la hermana de Javi**, con su libro personal y sin
-compartir nada con nadie. Importa porque cambia quién es el usuario típico: ya no son
-solo dos amigos que hablan entre ellos y con quien hizo la app. Alguien que se queda
-fuera no tiene a quién preguntar, así que la app tiene que saber decir por sí sola qué
-ha pasado. De ahí salieron las dos decisiones de abajo, del 30/08/2026.
+Nació el 19/08/2026 como algo entre Javi y Pablo, y hasta el 30/08 aquí ponía que el
+producto «no persigue usuarios desconocidos». **Se cambia el 30/08/2026 por decisión de
+Javi: la app es para todo el mundo.**
+
+No es un matiz de redacción, mueve el listón entero. Con dos amigos, quien se atasca
+pregunta por WhatsApp a quien hizo la app, y eso tapa cualquier agujero. Con gente que
+no conoces de nada no hay a quién preguntar: **todo lo que pueda salir mal tiene que
+poder arreglarse desde dentro de la app, sin que nadie toque la base de datos**.
+
+Esa es la vara con la que se miden las decisiones del 30/08 que vienen más abajo, y las
+que vengan: recuperar la contraseña por tu cuenta, que una sesión caducada te lleve a la
+entrada y no a un error sin salida, y entrar con Google para quien no quiera inventarse
+otra contraseña más.
 
 El uso real es en el móvil, con la app añadida a la pantalla de inicio, y en momentos
 sueltos: se apunta un gasto justo después de hacerlo, de pie, en diez segundos.
@@ -88,6 +95,8 @@ Funciona hoy:
 - La sesión guardada en el móvil dura 90 días, y al caducar lleva a la pantalla de
   entrada, no a un error.
 - «No me acuerdo de la contraseña»: se pide un enlace por correo y se pone otra.
+- Entrar con Google, para quien prefiera no llevar otra contraseña encima. Convive con
+  la de siempre: nadie tiene que cambiar cómo entra.
 
 Restricciones técnicas:
 
