@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { pb } from "./lib/pb";
 
 type Modo = "entrar" | "crear" | "olvidada";
@@ -11,6 +11,48 @@ export default function Login({ onIn }: { onIn: () => void }) {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [enviado, setEnviado] = useState(false);
+  // El botón de Google solo sale si el servidor tiene el proveedor puesto. No
+  // se enseña una puerta que no abre: mientras falten las credenciales en
+  // PocketBase aquí no hay nada que pulsar, y aparece solo en cuanto estén.
+  const [conGoogle, setConGoogle] = useState(false);
+
+  useEffect(() => {
+    let vivo = true;
+    pb.collection("users")
+      .listAuthMethods()
+      .then((metodos) => {
+        const hay =
+          metodos.oauth2?.enabled &&
+          metodos.oauth2.providers.some((proveedor) => proveedor.name === "google");
+        if (vivo) setConGoogle(Boolean(hay));
+      })
+      .catch(() => {
+        // Sin red no se pregunta: se queda la entrada de siempre, que es la
+        // que funciona con lo que ya está guardado en el móvil.
+      });
+    return () => {
+      vivo = false;
+    };
+  }, []);
+
+  async function entrarConGoogle() {
+    setBusy(true);
+    setError(null);
+    try {
+      await pb.collection("users").authWithOAuth2({ provider: "google" });
+      onIn();
+    } catch (err) {
+      // Cerrar la ventana de Google a medias cae aquí también, y eso no es un
+      // fallo que merezca dramatismo.
+      const status = (err as { status?: number })?.status;
+      setError(
+        status === 0
+          ? "No hay conexión con el servidor."
+          : "No se ha completado la entrada con Google.",
+      );
+      setBusy(false);
+    }
+  }
 
   async function submit(e: FormEvent) {
     e.preventDefault();
@@ -122,6 +164,18 @@ export default function Login({ onIn }: { onIn: () => void }) {
           {busy ? OCUPADO[modo] : LISTO[modo]}
         </button>
 
+        {conGoogle && modo !== "olvidada" && (
+          <>
+            <p className="gate-o">
+              <span>o</span>
+            </p>
+            <button type="button" className="ghost" onClick={entrarConGoogle} disabled={busy}>
+              <MarcaGoogle />
+              Entrar con Google
+            </button>
+          </>
+        )}
+
         <p className="gate-foot">
           {modo === "entrar" ? (
             <>
@@ -149,6 +203,34 @@ export default function Login({ onIn }: { onIn: () => void }) {
         </p>
       </form>
     </div>
+  );
+}
+
+/**
+ * La «G» de Google, con sus colores. Es la única cosa dibujada aquí que no
+ * sigue el estilo de la casa, y va así a propósito: es marca ajena, y quien
+ * la ve tiene que reconocerla al instante para fiarse de dónde está entrando.
+ */
+function MarcaGoogle() {
+  return (
+    <svg width="17" height="17" viewBox="0 0 48 48" aria-hidden="true" focusable="false">
+      <path
+        fill="#4285F4"
+        d="M45.1 24.5c0-1.6-.1-3.2-.4-4.7H24v8.9h11.8c-.5 2.8-2 5.1-4.4 6.7v5.5h7.1c4.2-3.8 6.6-9.5 6.6-16.4z"
+      />
+      <path
+        fill="#34A853"
+        d="M24 46c6 0 11-2 14.5-5.4l-7.1-5.5c-2 1.3-4.5 2.1-7.4 2.1-5.7 0-10.6-3.9-12.3-9.1H4.3v5.7C7.8 41.1 15.3 46 24 46z"
+      />
+      <path
+        fill="#FBBC05"
+        d="M11.7 28.1c-.4-1.3-.7-2.7-.7-4.1s.2-2.8.7-4.1v-5.7H4.3C2.8 17.2 2 20.5 2 24s.8 6.8 2.3 9.8l7.4-5.7z"
+      />
+      <path
+        fill="#EA4335"
+        d="M24 10.8c3.2 0 6.1 1.1 8.4 3.3l6.3-6.3C34.9 4.1 30 2 24 2 15.3 2 7.8 6.9 4.3 14.2l7.4 5.7c1.7-5.2 6.6-9.1 12.3-9.1z"
+      />
+    </svg>
   );
 }
 

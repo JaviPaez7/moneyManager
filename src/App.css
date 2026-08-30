@@ -1243,6 +1243,24 @@ button {
   color: var(--accent);
 }
 
+/* El «o» entre entrar con contraseña y entrar con Google. */
+.gate-o {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 0.75rem;
+  margin: -0.25rem 0;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.gate-o::before,
+.gate-o::after {
+  content: "";
+  height: 1px;
+  background: var(--line);
+}
+
 .sr-only {
   position: absolute;
   width: 1px;
