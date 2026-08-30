@@ -15,6 +15,7 @@ import { createBook, friendlyError, joinBook, listBooks } from "./lib/api";
 import { currentMonth, formatEUR } from "./lib/format";
 import { dismissLocalStore, pendingLocalStore, uploadLocalStore } from "./lib/migrate";
 import { currentUser, pb, type AuthUser } from "./lib/pb";
+import { esSesionMuerta } from "./lib/session";
 import { monthBreakdown } from "./lib/summary";
 import { useComposer } from "./lib/useComposer";
 import { useSnack } from "./lib/useSnack";
@@ -30,15 +31,23 @@ export default function App() {
 
   useEffect(() => pb.authStore.onChange(() => setUser(currentUser())), []);
 
-  // La sesión guardada en el navegador puede no valer ya (contraseña cambiada,
-  // cuenta borrada). PocketBase no responde 401 en ese caso: atiende la
-  // petición como si no hubiera nadie, así que la app se quedaba dentro,
-  // enseñando ceros y un error del que no se sale. Se comprueba al arrancar.
+  // La sesión guardada en el navegador puede no valer ya: el token dura cinco
+  // días, y además la contraseña puede haber cambiado o la cuenta desaparecido.
+  // PocketBase no responde 401 en ese caso: atiende la petición como si no
+  // hubiera nadie, así que la app se quedaba dentro, enseñando ceros y un error
+  // del que no se sale. Se comprueba al arrancar.
   useEffect(() => {
-    if (!pb.authStore.isValid) return;
+    // Caducada por su cuenta: lo dice el propio token sin preguntar a nadie, y
+    // un token caducado no se refresca. Se tira, y a la pantalla de entrada.
+    if (!pb.authStore.isValid) {
+      if (pb.authStore.record) pb.authStore.clear();
+      return;
+    }
     pb.collection("users")
       .authRefresh()
-      .catch(() => pb.authStore.clear())
+      .catch((err) => {
+        if (esSesionMuerta(err)) pb.authStore.clear();
+      })
       .finally(() => setComprobando(false));
   }, []);
 
@@ -95,7 +104,17 @@ function Money({ user }: { user: AuthUser }) {
     (async () => {
       try {
         let list = await listBooks();
-        if (list.length === 0) list = [await createBook("Mis cuentas")];
+        if (list.length === 0) {
+          // Ojo: sin sesión válida el servidor no protesta al listar, devuelve
+          // la lista vacía. Si la sesión se murió con la app abierta, «no hay
+          // libros» es mentira y crear uno aquí solo consigue el 400 de la
+          // regla y un «Los datos no son válidos» encima de sus cuentas.
+          if (!pb.authStore.isValid) {
+            pb.authStore.clear();
+            return;
+          }
+          list = [await createBook("Mis cuentas")];
+        }
         if (!alive) return;
         setBooks(list);
         setBookId((prev) => (list.some((b) => b.id === prev) ? prev : list[0].id));

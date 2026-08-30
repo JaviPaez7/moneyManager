@@ -25,6 +25,12 @@ export type AuthUser = {
 };
 
 export function currentUser(): AuthUser | null {
+  // El navegador guarda la ficha y el token por separado, y la ficha no caduca:
+  // `record` sigue ahí cinco días después, con el token ya muerto. Sin mirar
+  // `isValid` la app dejaba pasar dentro con una sesión caducada, y entonces
+  // todo lo que pedía salía sin autenticar: los listados volvían vacíos (que
+  // para PocketBase no es un error) y el primer apunte moría con un 400.
+  if (!pb.authStore.isValid) return null;
   const record = pb.authStore.record;
   if (!record) return null;
   return {
