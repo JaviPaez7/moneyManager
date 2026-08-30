@@ -16,6 +16,14 @@ personal, con varios es compartida y los dos ven y apuntan lo mismo.
 | Identidad | `DESIGN.md`; iconos e imagen social con `node infra/icons.mjs` |
 | Esquema | `infra/pb-schema.mjs` (idempotente) |
 | Alta de cuentas | Desde la propia app; `infra/pb-user.mjs` para hacerlo a dedo |
+| Correo | SMTP de PocketBase → Resend, la misma cuenta que Citaly, DanceFloor y Tanke |
+| Remitente | `Neto <no-reply@mail.javistudio.dev>`; el dominio ya estaba verificado |
+
+Quien olvida su contraseña pide un enlace desde la propia pantalla de entrada.
+El correo lo manda PocketBase con la plantilla de `infra/pb-schema.mjs`, y el
+enlace lleva a la app (`/#/recuperar/TOKEN`, en el hash para que el nginx que
+sirve el sitio no tenga que saberse ninguna ruta) y vale media hora. **Hace falta
+tener el SMTP puesto en PocketBase**: sin él la petición falla y no sale nada.
 
 El registro es abierto: cualquiera puede crearse una cuenta desde la pantalla
 de entrada. Cada cuenta arranca con su libro personal y no ve nada de nadie:

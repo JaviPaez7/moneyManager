@@ -9,6 +9,7 @@ import Login from "./Login";
 import Movements from "./Movements";
 import Password from "./Password";
 import Pots from "./Pots";
+import Recuperar from "./Recuperar";
 import Snack from "./Snack";
 import TopBar from "./TopBar";
 import { createBook, friendlyError, joinBook, listBooks } from "./lib/api";
@@ -16,6 +17,7 @@ import { currentMonth, formatEUR } from "./lib/format";
 import { dismissLocalStore, pendingLocalStore, uploadLocalStore } from "./lib/migrate";
 import { currentUser, pb, type AuthUser } from "./lib/pb";
 import { esSesionMuerta } from "./lib/session";
+import { tokenDeRecuperacion } from "./lib/recuperacion";
 import { monthBreakdown } from "./lib/summary";
 import { useComposer } from "./lib/useComposer";
 import { useSnack } from "./lib/useSnack";
@@ -28,6 +30,9 @@ const BOOK_KEY = "moneymanager.libro";
 export default function App() {
   const [user, setUser] = useState<AuthUser | null>(currentUser);
   const [comprobando, setComprobando] = useState(() => pb.authStore.isValid);
+  // Se lee una sola vez, al arrancar: quien viene del enlace del correo va a
+  // esa pantalla y a ninguna otra, tenga o no una sesión guardada.
+  const [recuperacion] = useState(() => tokenDeRecuperacion(window.location.hash));
 
   useEffect(() => pb.authStore.onChange(() => setUser(currentUser())), []);
 
@@ -50,6 +55,8 @@ export default function App() {
       })
       .finally(() => setComprobando(false));
   }, []);
+
+  if (recuperacion) return <Recuperar token={recuperacion} />;
 
   if (comprobando) {
     return (
