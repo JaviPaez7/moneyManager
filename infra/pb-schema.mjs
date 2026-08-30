@@ -119,6 +119,43 @@ if (!usersId) throw new Error("No existe la colección de usuarios");
 // enumerar quién usa la app ni ver correos ajenos.
 const soloGenteDeMisLibros =
   "id = @request.auth.id || books_via_members.members.id ?= @request.auth.id";
+
+/**
+ * Cuánto dura la sesión guardada en el móvil: 90 días.
+ *
+ * Venía de fábrica en 5 días y eso echaba fuera a quien no abría la app una
+ * semana, que es justo cómo se usa esto: en momentos sueltos. Pasó de verdad
+ * (30/08/2026) y no se vio venir, porque al caducar la app no llevaba a la
+ * pantalla de entrada, se quedaba dentro sin sesión enseñando errores.
+ *
+ * El listón es una app de banco en la pantalla de inicio: no te echa cada
+ * semana. Lo que concede la sesión es ver y apuntar en libros propios; no
+ * mueve dinero ni guarda medios de pago, así que 90 días es proporcionado.
+ * Quien quiera cortarla del todo tiene el botón de salir, y cambiar la
+ * contraseña invalida las que haya sueltas.
+ */
+const DURACION_SESION = 90 * 24 * 60 * 60;
+
+/**
+ * El correo de "no me acuerdo de la contraseña".
+ *
+ * El enlace apunta a la app y no a `{APP_URL}`, que es el dominio de la API:
+ * el de fábrica llevaba al panel de PocketBase, que es otra cosa con otra
+ * cara. El token va en el hash porque así el nginx que sirve el sitio no
+ * necesita saberse ninguna ruta y el token no queda en su registro.
+ */
+const APP = "https://neto.javistudio.dev";
+const correoDeRecuperacion = {
+  subject: "Cambiar tu contraseña de Neto",
+  body: [
+    "<p>Hola,</p>",
+    "<p>Has pedido cambiar la contraseña de Neto. El enlace vale durante media hora.</p>",
+    `<p><a class="btn" href="${APP}/#/recuperar/{TOKEN}" target="_blank" rel="noopener">Poner una contraseña nueva</a></p>`,
+    "<p><i>Si no has sido tú, no tienes que hacer nada: mientras no se abra el enlace, no cambia nada.</i></p>",
+    "<p>Neto</p>",
+  ].join("\n"),
+};
+
 await api(`/api/collections/${usersId}`, {
   method: "PATCH",
   body: JSON.stringify({
@@ -127,9 +164,11 @@ await api(`/api/collections/${usersId}`, {
     viewRule: soloGenteDeMisLibros,
     updateRule: "id = @request.auth.id",
     deleteRule: "id = @request.auth.id",
+    authToken: { duration: DURACION_SESION },
+    resetPasswordTemplate: correoDeRecuperacion,
   }),
 });
-console.log("~ actualizada users (registro abierto, sin listado de personas)");
+console.log("~ actualizada users (registro abierto, sesión de 90 días)");
 
 const isMember = "book.members.id ?= @request.auth.id";
 

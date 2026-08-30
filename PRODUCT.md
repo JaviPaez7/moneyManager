@@ -12,6 +12,12 @@ Javi (dueño) y Pablo, dos amigos que llevan sus gastos personales y además com
 algunos. Cualquiera puede registrarse, así que puede sumarse algún amigo más, pero el
 producto no persigue usuarios desconocidos.
 
+**Desde el 20/08/2026 también lo usa la hermana de Javi**, con su libro personal y sin
+compartir nada con nadie. Importa porque cambia quién es el usuario típico: ya no son
+solo dos amigos que hablan entre ellos y con quien hizo la app. Alguien que se queda
+fuera no tiene a quién preguntar, así que la app tiene que saber decir por sí sola qué
+ha pasado. De ahí salieron las dos decisiones de abajo, del 30/08/2026.
+
 El uso real es en el móvil, con la app añadida a la pantalla de inicio, y en momentos
 sueltos: se apunta un gasto justo después de hacerlo, de pie, en diez segundos.
 
@@ -40,6 +46,25 @@ descontarse. Se hace, pero acotado a eso: **un tope y lo que queda**. Nada de
 previsiones, avisos, notificaciones ni recomendaciones; eso sigue fuera y es lo que
 mantiene la app siendo un registro y no un cuadro de mandos.
 
+**Sobre la sesión (30/08/2026):** duraba cinco días, el valor de fábrica de PocketBase,
+y eso echaba fuera a quien no abría la app una semana — que es exactamente cómo se usa
+esto, «en momentos sueltos». Pasa a **90 días**. El listón es una app de banco en la
+pantalla de inicio: no te echa cada semana. Lo que concede la sesión es ver y apuntar en
+libros propios, no mueve dinero ni guarda medios de pago, así que 90 días es
+proporcionado; quien quiera cortarla tiene el botón de salir.
+
+Se descubrió por las malas: al caducar, la app no llevaba a la pantalla de entrada, se
+quedaba dentro sin sesión. Y como PocketBase no da error al listar sin sesión —devuelve
+la lista vacía— la app creía que la cuenta no tenía libros e intentaba crearle uno,
+que sí choca contra la regla. Resultado: «Los datos no son válidos» encima de unas
+cuentas intactas, sin forma de salir de ahí. Arreglado el mismo día.
+
+**Sobre recuperar la contraseña (30/08/2026):** hasta ahora no había ninguna forma. Quien
+olvidaba la suya quedaba fuera para siempre, y lo único que ofrecía la app era «créate una
+cuenta», que tampoco vale porque el correo ya está cogido. Se añade el enlace por correo.
+Es el mínimo para que la app se sostenga sola sin que Javi tenga que tocar la base de
+datos por cada olvido.
+
 ## Operating Context
 
 - Móvil, en la calle, con una mano, a menudo con mala cobertura.
@@ -60,6 +85,9 @@ Funciona hoy:
 - Cuentas con registro abierto; los correos no se ven entre usuarios.
 - Tope por categoría: se pone un máximo al mes y se ve lo que queda.
 - Abre sin cobertura y enseña lo último que vio, avisando de que no hay red.
+- La sesión guardada en el móvil dura 90 días, y al caducar lleva a la pantalla de
+  entrada, no a un error.
+- «No me acuerdo de la contraseña»: se pide un enlace por correo y se pone otra.
 
 Restricciones técnicas:
 
@@ -67,6 +95,8 @@ Restricciones técnicas:
 - Datos en PocketBase propio (`api-neto.javistudio.dev`), en la VPS.
 - El frontend es estático: build en GitHub Actions y `rsync` a la VPS.
 - Sin conexión se lee, pero no se apunta: no hay cola de escrituras (pendiente).
+- El correo sale por el SMTP configurado en PocketBase. Sin él no hay forma de recuperar
+  la contraseña: es la única pieza del producto que depende de un servicio de fuera.
 
 ## Brand Commitments
 
