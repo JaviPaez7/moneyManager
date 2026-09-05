@@ -1,0 +1,72 @@
+/* Snack: barra flotante de confirmación y deshacer */
+
+.snack {
+  position: fixed;
+  left: 50%;
+  bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+  transform: translateX(-50%);
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: max-content;
+  max-width: calc(100% - 2rem);
+  padding: 0.6rem 0.6rem 0.6rem 1.05rem;
+  background: var(--card-2);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.28);
+  font-size: 0.9rem;
+  font-weight: 600;
+  animation: snack-in 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@keyframes snack-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 0.75rem);
+  }
+}
+
+.snack-msg {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.snack-action {
+  flex-shrink: 0;
+  border: 0;
+  background: transparent;
+  padding: 0.5rem 0.7rem;
+  border-radius: 10px;
+  font: inherit;
+  font-weight: 700;
+  color: var(--accent);
+  cursor: pointer;
+  transition: background 150ms;
+}
+
+.snack-action:hover {
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+}
+
+.snack-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 2rem;
+  height: 2rem;
+  border: 0;
+  border-radius: 99px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  transition: color 150ms, background 150ms;
+}
+
+.snack-close:hover {
+  color: var(--ink);
+  background: var(--line);
+}

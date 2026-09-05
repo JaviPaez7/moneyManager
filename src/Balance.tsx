@@ -24,7 +24,10 @@ export default function Balance({ month, mes }: { month: string; mes: MonthBreak
 
   return (
     <section className="balance" aria-label="Lo que te queda este mes">
-      <p className="balance-label">Te queda</p>
+      <div className="balance-header">
+        <span className="balance-pill">Saldo neto</span>
+        <p className="balance-label">Lo que te queda</p>
+      </div>
       <p key={`${month}-${mes.leftover}`} className="ledger-hero enter">
         {formatEUR(mes.leftover)}
       </p>
@@ -32,7 +35,9 @@ export default function Balance({ month, mes }: { month: string; mes: MonthBreak
 
       {hayCuenta && (
         <details className="balance-cuenta">
-          <summary>Ver la cuenta</summary>
+          <summary>
+            <span>Desglose mensual</span>
+          </summary>
           <ul className="ledger-rows">
             <li>
               <span>Ingresos</span>
@@ -55,7 +60,7 @@ export default function Balance({ month, mes }: { month: string; mes: MonthBreak
               <em className={mes.savingTotal === 0 ? "zero" : undefined}>{formatOut(mes.savingTotal)}</em>
             </li>
             <li className="total">
-              <span>Queda</span>
+              <span>Queda disponible</span>
               <em>{formatEUR(mes.leftover)}</em>
             </li>
           </ul>

@@ -1,0 +1,141 @@
+/* TopBar: cabecera, navegación de mes y menú de cuenta */
+
+.top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.25rem 0.25rem 0.5rem;
+}
+
+.top h1 {
+  margin: 0;
+  font-size: 1.45rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  background: linear-gradient(180deg, var(--ink) 0%, var(--muted) 160%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.top-right {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.month-nav {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+  background: var(--card);
+  border: var(--card-border);
+  border-radius: 99px;
+  padding: 0.25rem;
+  box-shadow: var(--sombra);
+}
+
+.month-nav span {
+  min-width: 7.5rem;
+  text-align: center;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.month-nav button,
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.35rem;
+  height: 2.35rem;
+  border: 0;
+  border-radius: 99px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  transition: all 150ms ease;
+}
+
+.month-nav button:hover,
+.icon-btn:hover,
+.account-btn:hover {
+  color: var(--ink);
+  background: var(--card-2);
+}
+
+.account {
+  position: relative;
+}
+
+.account-btn {
+  display: grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  padding: 0;
+  border: 0;
+  border-radius: 99px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.account-av {
+  width: 2.35rem;
+  height: 2.35rem;
+  font-size: 0.85rem;
+  border: 2px solid var(--line-strong);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  transition: transform 150ms ease, border-color 150ms ease;
+}
+
+.account-btn:hover .account-av {
+  transform: scale(1.05);
+  border-color: var(--accent);
+}
+
+.account-menu {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  right: 0;
+  z-index: 20;
+  min-width: 11.5rem;
+  display: grid;
+  gap: 0.25rem;
+  padding: 0.85rem 1rem;
+  background: var(--card);
+  border: var(--card-border);
+  border-radius: 20px;
+  box-shadow: 0 16px 36px -4px rgba(0, 0, 0, 0.4), 0 2px 6px rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(16px);
+}
+
+.account-name {
+  margin: 0 0 0.35rem;
+  font-size: 0.9rem;
+  font-weight: 700;
+  padding-bottom: 0.35rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.account-menu .text-btn {
+  justify-self: start;
+  min-height: 2.2rem;
+  font-size: 0.85rem;
+}
+
+@media (max-width: 560px) {
+  .top {
+    gap: 0.6rem;
+  }
+
+  .top h1 {
+    font-size: 1.2rem;
+  }
+
+  .month-nav span {
+    min-width: 6.5rem;
+    font-size: 0.75rem;
+  }
+}

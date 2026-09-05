@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent } from "react";
+import { NetoBrandIcon } from "./icons";
 import { pb } from "./lib/pb";
 
 type Modo = "entrar" | "crear" | "olvidada";
@@ -94,6 +95,9 @@ export default function Login({ onIn }: { onIn: () => void }) {
     return (
       <div className="gate">
         <div className="gate-card">
+          <div className="gate-brand">
+            <NetoBrandIcon size={44} />
+          </div>
           <h1>Neto</h1>
           <p className="lede">
             Si ese correo tiene cuenta, ya va camino un enlace para poner una
@@ -112,14 +116,42 @@ export default function Login({ onIn }: { onIn: () => void }) {
   return (
     <div className="gate">
       <form className="gate-card" onSubmit={submit}>
-        <h1>Neto</h1>
-        <p className="lede">
-          {modo === "entrar"
-            ? "Lo que te queda cada mes, sin adornos. Entra para verlo."
-            : modo === "crear"
-              ? "Crea tu cuenta y empieza a apuntar."
-              : "Dinos tu correo y te mandamos un enlace para cambiarla."}
-        </p>
+        <div className="gate-brand">
+          <NetoBrandIcon size={44} />
+        </div>
+        <div className="gate-header">
+          <h1>Neto</h1>
+          <p className="lede">
+            {modo === "entrar"
+              ? "Control financiero mensual, claro y directo."
+              : modo === "crear"
+                ? "Crea tu cuenta y empieza a apuntar."
+                : "Recupera el acceso a tu cuenta."}
+          </p>
+        </div>
+
+        {modo !== "olvidada" && (
+          <div className="gate-tabs" role="tablist" aria-label="Modo de acceso">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={modo === "entrar"}
+              className={modo === "entrar" ? "on" : ""}
+              onClick={() => cambiarModo("entrar")}
+            >
+              Iniciar sesión
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={modo === "crear"}
+              className={modo === "crear" ? "on" : ""}
+              onClick={() => cambiarModo("crear")}
+            >
+              Registrarse
+            </button>
+          </div>
+        )}
 
         {modo === "crear" && (
           <label>
@@ -167,40 +199,28 @@ export default function Login({ onIn }: { onIn: () => void }) {
         {conGoogle && modo !== "olvidada" && (
           <>
             <p className="gate-o">
-              <span>o</span>
+              <span>o continuar con</span>
             </p>
-            <button type="button" className="ghost" onClick={entrarConGoogle} disabled={busy}>
+            <button type="button" className="ghost google-btn" onClick={entrarConGoogle} disabled={busy}>
               <MarcaGoogle />
-              Entrar con Google
+              <span>Google</span>
             </button>
           </>
         )}
 
-        <p className="gate-foot">
+        <div className="gate-foot">
           {modo === "entrar" ? (
-            <>
-              ¿No tienes cuenta?{" "}
-              <button type="button" className="text-btn" onClick={() => cambiarModo("crear")}>
-                Créate una
-              </button>
-              {" · "}
-              <button type="button" className="text-btn" onClick={() => cambiarModo("olvidada")}>
-                No me acuerdo de la contraseña
-              </button>
-            </>
+            <button type="button" className="text-btn" onClick={() => cambiarModo("olvidada")}>
+              ¿Has olvidado la contraseña?
+            </button>
           ) : modo === "crear" ? (
-            <>
-              La contraseña necesita 8 caracteres.{" "}
-              <button type="button" className="text-btn" onClick={() => cambiarModo("entrar")}>
-                Ya tengo cuenta
-              </button>
-            </>
+            <span className="pwd-hint">La contraseña debe tener al menos 8 caracteres.</span>
           ) : (
             <button type="button" className="text-btn" onClick={() => cambiarModo("entrar")}>
-              Ya me acuerdo
+              Volver a iniciar sesión
             </button>
           )}
-        </p>
+        </div>
       </form>
     </div>
   );

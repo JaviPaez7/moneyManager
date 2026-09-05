@@ -24,6 +24,7 @@ import { useSnack } from "./lib/useSnack";
 import type { Book, Tx } from "./lib/types";
 import { useBookActions } from "./lib/useBookActions";
 import { useBookStore } from "./lib/useBookStore";
+import { drainOutbox } from "./lib/outbox";
 
 const BOOK_KEY = "moneymanager.libro";
 
@@ -140,17 +141,35 @@ function Money({ user }: { user: AuthUser }) {
     if (bookId) localStorage.setItem(BOOK_KEY, bookId);
   }, [bookId]);
 
-  // Sin cobertura la app abre igual y enseña lo último que vio, pero hay que
-  // decirlo: si no, parece que los datos están mal.
+  // Sin cobertura la app abre igual y enseña lo último que vio, y las mutaciones
+  // se encolan en la outbox para reproducirse automáticamente al reconectar.
   useEffect(() => {
-    const cambio = () => setSinRed(!navigator.onLine);
+    const drain = () => {
+      void drainOutbox({
+        onTxCreated: (tempId, serverTx) => {
+          setStore((prev) => ({
+            ...prev,
+            txs: prev.txs.map((t) => (t.id === tempId ? serverTx : t)),
+          }));
+        },
+      });
+    };
+
+    const cambio = () => {
+      const offline = !navigator.onLine;
+      setSinRed(offline);
+      if (!offline) drain();
+    };
+
+    if (navigator.onLine) drain();
+
     window.addEventListener("online", cambio);
     window.addEventListener("offline", cambio);
     return () => {
       window.removeEventListener("online", cambio);
       window.removeEventListener("offline", cambio);
     };
-  }, []);
+  }, [setStore]);
 
   const mes = useMemo(() => monthBreakdown(store.txs, month), [store.txs, month]);
   const book = books.find((b) => b.id === bookId);
@@ -241,7 +260,7 @@ function Money({ user }: { user: AuthUser }) {
 
       {sinRed && (
         <p className="banner offline" role="status">
-          Sin conexión. Ves lo último que se descargó; para apuntar algo hace falta red.
+          Modo sin conexión. Puedes seguir apuntando gastos con normalidad; se guardarán en tu dispositivo y se sincronizarán al recuperar cobertura.
         </p>
       )}
 

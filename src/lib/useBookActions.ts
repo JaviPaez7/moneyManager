@@ -14,7 +14,9 @@ import {
   updateRecurring,
   updateTx,
 } from "./api";
-import { currentMonth, parseAmount, today } from "./format";
+import { currentMonth, parseAmount, today, uid } from "./format";
+import { drainOutbox, enqueueOutbox, loadOutbox, saveOutbox } from "./outbox";
+import { pb } from "./pb";
 import type { Book, EntryDraft, Recurring, Section, Store, Tx } from "./types";
 import { KIND_SECTION, SECTION_LABEL } from "./types";
 
@@ -73,29 +75,35 @@ export function useBookActions({
     const amount = parseAmount(form.amount);
     if (amount == null) return null;
 
-    return run(async () => {
-      let potId = form.potId || undefined;
-      if (form.kind === "saving") {
-        const newName = form.newPotName.trim();
-        if (newName) {
+    let potId = form.potId || undefined;
+    if (form.kind === "saving") {
+      const newName = form.newPotName.trim();
+      if (newName) {
+        try {
           const pot = await createPot(bookId, newName, parseAmount(form.newPotTarget) || 0);
           potId = pot.id;
           setStore((prev) => ({ ...prev, pots: [...prev.pots, pot] }));
+        } catch {
+          const localPot = { id: uid(), name: newName, target: parseAmount(form.newPotTarget) || 0 };
+          potId = localPot.id;
+          setStore((prev) => ({ ...prev, pots: [...prev.pots, localPot] }));
         }
-        if (!potId) return null;
       }
+      if (!potId) return null;
+    }
 
-      const section: Section =
-        form.kind === "saving"
-          ? "ahorro"
-          : form.kind === "income"
-            ? KIND_SECTION.income
-            : form.section;
-      const note = form.note.trim() || (form.kind === "income" ? "Ingreso" : SECTION_LABEL[section]);
-      const category = form.kind === "expense" && section === "variable" ? form.category : note;
+    const section: Section =
+      form.kind === "saving"
+        ? "ahorro"
+        : form.kind === "income"
+          ? KIND_SECTION.income
+          : form.section;
+    const note = form.note.trim() || (form.kind === "income" ? "Ingreso" : SECTION_LABEL[section]);
+    const category = form.kind === "expense" && section === "variable" ? form.category : note;
 
-      let recurringId: string | undefined;
-      if (form.repeat && form.kind !== "saving") {
+    let recurringId: string | undefined;
+    if (form.repeat && form.kind !== "saving") {
+      try {
         const rule = await createRecurring(bookId, {
           kind: form.kind,
           section,
@@ -109,9 +117,36 @@ export function useBookActions({
         });
         recurringId = rule.id;
         setStore((prev) => ({ ...prev, recurrings: [rule, ...prev.recurrings] }));
+      } catch {
+        /* se creará al reconectar */
       }
+    }
 
-      const tx = await createTx(bookId, {
+    const tempId = "opt_" + uid();
+    const optimisticTx: Tx = {
+      id: tempId,
+      kind: form.kind,
+      amount,
+      section,
+      category,
+      note,
+      date: form.date,
+      recurringId,
+      potId,
+      createdById: pb.authStore.record?.id,
+      createdByName:
+        (pb.authStore.record?.name as string) || (pb.authStore.record?.email as string),
+      out: false,
+    };
+
+    // 1. Inmediato: actualización optimista en el estado de React (0 ms)
+    setStore((prev) => ({ ...prev, txs: [optimisticTx, ...prev.txs] }));
+
+    // 2. Persistencia en la cola local (outbox)
+    enqueueOutbox({
+      type: "createTx",
+      bookId,
+      payload: {
         kind: form.kind,
         amount,
         section,
@@ -120,27 +155,57 @@ export function useBookActions({
         date: form.date,
         recurringId,
         potId,
-      });
-      setStore((prev) => ({ ...prev, txs: [tx, ...prev.txs] }));
-      return { tx, potId: potId || "" };
+      },
+      tempId,
     });
+
+    // 3. Sincronización en segundo plano con el servidor
+    void drainOutbox({
+      onTxCreated: (tId, serverTx) => {
+        setStore((prev) => ({
+          ...prev,
+          txs: prev.txs.map((t) => (t.id === tId ? serverTx : t)),
+        }));
+      },
+    });
+
+    return { tx: optimisticTx, potId: potId || "" };
   }
 
   async function removeTx(tx: Tx) {
-    return run(async () => {
-      await deleteTx(tx.id);
+    if (tx.id.startsWith("opt_")) {
       setStore((prev) => ({ ...prev, txs: prev.txs.filter((row) => row.id !== tx.id) }));
-      // Si venía de un recurrente, marcamos el mes como saltado: si no, al
-      // volver a abrir el mes se volvería a crear solo.
+      const queue = loadOutbox().filter(
+        (item) => !(item.type === "createTx" && item.tempId === tx.id),
+      );
+      saveOutbox(queue);
+      return true;
+    }
+
+    return run(async () => {
+      try {
+        await deleteTx(tx.id);
+      } catch (err) {
+        if (typeof navigator !== "undefined" && !navigator.onLine) {
+          enqueueOutbox({ type: "deleteTx", txId: tx.id });
+        } else {
+          throw err;
+        }
+      }
+      setStore((prev) => ({ ...prev, txs: prev.txs.filter((row) => row.id !== tx.id) }));
       const rule = store.recurrings.find((r) => r.id === tx.recurringId);
       if (rule) {
-        const updated = await updateRecurring(rule.id, {
-          skippedMonths: [...new Set([...rule.skippedMonths, month])],
-        });
-        setStore((prev) => ({
-          ...prev,
-          recurrings: prev.recurrings.map((r) => (r.id === updated.id ? updated : r)),
-        }));
+        try {
+          const updated = await updateRecurring(rule.id, {
+            skippedMonths: [...new Set([...rule.skippedMonths, month])],
+          });
+          setStore((prev) => ({
+            ...prev,
+            recurrings: prev.recurrings.map((r) => (r.id === updated.id ? updated : r)),
+          }));
+        } catch {
+          /* regla se sincronizará luego */
+        }
       }
       return true;
     });
@@ -186,6 +251,14 @@ export function useBookActions({
    * el que se esté mirando, por si acaso no coinciden.
    */
   async function commitRemoveTx(tx: Tx, rule?: Recurring) {
+    if (tx.id.startsWith("opt_")) {
+      const queue = loadOutbox().filter(
+        (item) => !(item.type === "createTx" && item.tempId === tx.id),
+      );
+      saveOutbox(queue);
+      return;
+    }
+
     try {
       await deleteTx(tx.id);
       if (rule) {
@@ -199,10 +272,14 @@ export function useBookActions({
         }));
       }
     } catch (err) {
-      setError(friendlyError(err));
-      setStore((prev) =>
-        prev.txs.some((r) => r.id === tx.id) ? prev : { ...prev, txs: [tx, ...prev.txs] },
-      );
+      if (typeof navigator !== "undefined" && !navigator.onLine) {
+        enqueueOutbox({ type: "deleteTx", txId: tx.id });
+      } else {
+        setError(friendlyError(err));
+        setStore((prev) =>
+          prev.txs.some((r) => r.id === tx.id) ? prev : { ...prev, txs: [tx, ...prev.txs] },
+        );
+      }
     }
   }
 

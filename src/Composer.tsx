@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from "react";
+import { IconExpense, IconIncome, IconSaving } from "./icons";
 import { classifySection, classifyVariableCategory, shouldRepeat } from "./lib/classify";
 import { parseAmount } from "./lib/format";
 import type { ComposerState } from "./lib/useComposer";
@@ -58,24 +59,42 @@ export default function Composer({
   return (
     <form className="composer" onSubmit={submit}>
       <div className="seg" role="tablist" aria-label="Tipo">
-        {(
-          [
-            ["expense", "Gasto"],
-            ["income", "Ingreso"],
-            ["saving", "Ahorro"],
-          ] as const
-        ).map(([value, label]) => (
-          <button
-            key={value}
-            type="button"
-            role="tab"
-            aria-selected={form.kind === value}
-            className={form.kind === value ? "on" : ""}
-            onClick={() => onKind(value)}
-          >
-            {label}
-          </button>
-        ))}
+        <button
+          type="button"
+          role="tab"
+          aria-selected={form.kind === "expense"}
+          className={`seg-btn expense ${form.kind === "expense" ? "on" : ""}`}
+          onClick={() => onKind("expense")}
+        >
+          <span className="seg-circle">
+            <IconExpense size={20} />
+          </span>
+          <span className="seg-text">Gasto</span>
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={form.kind === "income"}
+          className={`seg-btn income ${form.kind === "income" ? "on" : ""}`}
+          onClick={() => onKind("income")}
+        >
+          <span className="seg-circle">
+            <IconIncome size={20} />
+          </span>
+          <span className="seg-text">Ingreso</span>
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={form.kind === "saving"}
+          className={`seg-btn saving ${form.kind === "saving" ? "on" : ""}`}
+          onClick={() => onKind("saving")}
+        >
+          <span className="seg-circle">
+            <IconSaving size={20} />
+          </span>
+          <span className="seg-text">Ahorro</span>
+        </button>
       </div>
 
       <label>
