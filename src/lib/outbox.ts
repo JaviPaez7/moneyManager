@@ -6,27 +6,47 @@ export const OUTBOX_KEY = "moneymanager.outbox";
 
 type NewTxPayload = Omit<Tx, "id" | "createdById" | "createdByName">;
 
-export type OutboxItem =
+export type OutboxCreateTxItem = {
+  id: string;
+  type: "createTx";
+  bookId: string;
+  payload: NewTxPayload;
+  tempId: string;
+  createdAt: number;
+};
+
+export type OutboxUpdateTxItem = {
+  id: string;
+  type: "updateTx";
+  txId: string;
+  patch: Partial<NewTxPayload>;
+  createdAt: number;
+};
+
+export type OutboxDeleteTxItem = {
+  id: string;
+  type: "deleteTx";
+  txId: string;
+  createdAt: number;
+};
+
+export type OutboxItem = OutboxCreateTxItem | OutboxUpdateTxItem | OutboxDeleteTxItem;
+
+export type EnqueueItem =
   | {
-      id: string;
       type: "createTx";
       bookId: string;
       payload: NewTxPayload;
       tempId: string;
-      createdAt: number;
     }
   | {
-      id: string;
       type: "updateTx";
       txId: string;
       patch: Partial<NewTxPayload>;
-      createdAt: number;
     }
   | {
-      id: string;
       type: "deleteTx";
       txId: string;
-      createdAt: number;
     };
 
 export function loadOutbox(): OutboxItem[] {
@@ -52,8 +72,23 @@ export function saveOutbox(items: OutboxItem[]): void {
   }
 }
 
-export function enqueueOutbox(item: Omit<OutboxItem, "id" | "createdAt">): OutboxItem {
-  const fullItem: OutboxItem = {
+export function enqueueOutbox(item: {
+  type: "createTx";
+  bookId: string;
+  payload: NewTxPayload;
+  tempId: string;
+}): OutboxCreateTxItem;
+export function enqueueOutbox(item: {
+  type: "updateTx";
+  txId: string;
+  patch: Partial<NewTxPayload>;
+}): OutboxUpdateTxItem;
+export function enqueueOutbox(item: {
+  type: "deleteTx";
+  txId: string;
+}): OutboxDeleteTxItem;
+export function enqueueOutbox(item: EnqueueItem): OutboxItem {
+  const fullItem = {
     ...item,
     id: uid(),
     createdAt: Date.now(),
