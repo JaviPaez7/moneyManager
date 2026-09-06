@@ -296,9 +296,37 @@ function Money({ user }: { user: AuthUser }) {
 
       {loading ? (
         <p className="loading">Cargando el libro…</p>
+      ) : libroNuevo ? (
+        <div className="desk-grid">
+          <div className="desk-col desk-col-side">
+            <Balance month={month} mes={mes} />
+            <Composer
+              composer={composer}
+              pots={store.pots}
+              busy={acciones.busy}
+              onSubmit={async (form) => {
+                const hecho = await acciones.addEntry(form);
+                if (hecho) {
+                  snacks.queue({
+                    msg: `Guardado · ${hecho.tx.note || hecho.tx.category} · ${formatEUR(hecho.tx.amount)}`,
+                  });
+                }
+                return hecho;
+              }}
+            />
+          </div>
+          <div className="desk-col desk-col-main">
+            <section className="first-run">
+              <p>
+                Apunta tu primer ingreso o gasto aquí al lado. Los fijos y las suscripciones se
+                quedan solos para los próximos meses, así que el mes que viene empieza casi escrito.
+              </p>
+            </section>
+          </div>
+        </div>
       ) : (
-        <>
-          <div className="stage">
+        <div className="desk-grid">
+          <div className="desk-col desk-col-side">
             <Balance month={month} mes={mes} />
             <Composer
               composer={composer}
@@ -315,63 +343,53 @@ function Money({ user }: { user: AuthUser }) {
                 return hecho;
               }}
             />
+            <Budgets
+              budgets={store.budgets}
+              txs={store.txs}
+              month={month}
+              busy={acciones.busy}
+              onSet={acciones.setCap}
+              onRemove={acciones.removeCap}
+            />
           </div>
 
-          {libroNuevo ? (
-            <section className="first-run">
-              <p>
-                Apunta tu primer ingreso o gasto aquí arriba. Los fijos y las suscripciones se
-                quedan solos para los próximos meses, así que el mes que viene empieza casi escrito.
-              </p>
-            </section>
-          ) : (
-            <>
-              <Movements
-                month={month}
-                rows={mes.txs}
-                spent={mes.spent}
-                recurrings={store.recurrings}
-                activeRecurring={activeRecurring}
-                pots={store.pots}
-                shared={shared}
-                busy={acciones.busy}
-                editando={editando}
-                onEdit={setEditando}
-                onSave={acciones.saveEdit}
-                onRemove={borrarMovimiento}
-                onStop={acciones.stopRecurring}
-              />
+          <div className="desk-col desk-col-main">
+            <Movements
+              month={month}
+              rows={mes.txs}
+              spent={mes.spent}
+              recurrings={store.recurrings}
+              activeRecurring={activeRecurring}
+              pots={store.pots}
+              shared={shared}
+              busy={acciones.busy}
+              editando={editando}
+              onEdit={setEditando}
+              onSave={acciones.saveEdit}
+              onRemove={borrarMovimiento}
+              onStop={acciones.stopRecurring}
+            />
 
-              <Budgets
-                budgets={store.budgets}
-                txs={store.txs}
-                month={month}
-                busy={acciones.busy}
-                onSet={acciones.setCap}
-                onRemove={acciones.removeCap}
-              />
+            <History txs={store.txs} onPickMonth={setMonth} />
 
-              <History txs={store.txs} onPickMonth={setMonth} />
-
-              <Pots
-                pots={store.pots}
-                txs={store.txs}
-                savingTotal={mes.savingTotal}
-                busy={acciones.busy}
-                onCreate={async (name, target) => {
-                  // El bote recién creado queda elegido en el formulario: quien
-                  // lo crea es porque va a meterle algo ahora mismo.
-                  const pot = await acciones.potCreate(name, target);
-                  if (pot) composer.patch({ potId: pot.id, kind: "saving", section: "ahorro" });
-                }}
-                onWithdraw={acciones.potWithdraw}
-                onRename={acciones.potRename}
-                onDelete={acciones.potDelete}
-                onError={setError}
-              />
-            </>
-          )}
-        </>
+            <Pots
+              pots={store.pots}
+              txs={store.txs}
+              savingTotal={mes.savingTotal}
+              busy={acciones.busy}
+              onCreate={async (name, target) => {
+                // El bote recién creado queda elegido en el formulario: quien
+                // lo crea es porque va a meterle algo ahora mismo.
+                const pot = await acciones.potCreate(name, target);
+                if (pot) composer.patch({ potId: pot.id, kind: "saving", section: "ahorro" });
+              }}
+              onWithdraw={acciones.potWithdraw}
+              onRename={acciones.potRename}
+              onDelete={acciones.potDelete}
+              onError={setError}
+            />
+          </div>
+        </div>
       )}
 
       <Snack snack={snacks.snack} onUndo={snacks.undo} onClose={snacks.flush} />

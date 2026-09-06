@@ -48,9 +48,16 @@ body {
   gap: 1.15rem;
 }
 
-.stage {
+.stage,
+.desk-grid {
   display: grid;
   gap: 1.15rem;
+}
+
+.desk-col {
+  display: grid;
+  gap: 1.15rem;
+  align-content: start;
 }
 
 /* Tarjetas base */
@@ -344,6 +351,25 @@ footer p {
   margin: 0;
   font-size: 0.75rem;
   color: var(--muted);
+}
+
+@media (min-width: 960px) {
+  .shell {
+    width: min(1180px, calc(100% - 3rem));
+    padding: 2.2rem 0 5rem;
+    gap: 1.5rem;
+  }
+
+  .desk-grid {
+    grid-template-columns: 440px minmax(0, 1fr);
+    gap: 1.5rem;
+    align-items: start;
+  }
+
+  .desk-col-side {
+    position: sticky;
+    top: 1.5rem;
+  }
 }
 
 @media (max-width: 560px) {
